@@ -1,0 +1,15 @@
+{% macro icon(name, extra='') -%}
+<i data-lucide="{{ name }}" class="icon {{ extra }}" aria-hidden="true"></i>
+{%- endmacro %}
+
+{% macro status(text, tone='blue') -%}
+<span class="badge {{ tone }}"><span class="status-dot" aria-hidden="true"></span>{{ text }}</span>
+{%- endmacro %}
+
+{% macro metric(item) -%}
+<article class="metric-card">
+  <div class="metric-top"><span>{{ item.label }}</span><span class="metric-icon {{ item.tone }}">{{ icon(item.icon) }}</span></div>
+  <strong class="metric-value">{{ item.value }}</strong>
+  <p>{{ item.detail }}</p>
+</article>
+{%- endmacro %}

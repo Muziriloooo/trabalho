@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% from 'components/macros.html' import icon %}
+{% block content %}
+<section class="page-heading"><div><p class="eyebrow">SENTINELA AI · ROADMAP</p><h1>{{ title }}<span class="heading-dot">.</span></h1><p>Uma base preparada para as próximas etapas.</p></div></section>
+<section class="panel empty-state"><div class="empty-icon">{{ icon(module_icon) }}</div><span class="subtle-tag">AINDA NÃO IMPLEMENTADO</span><h2>Este módulo faz parte de uma próxima fase</h2><p>{{ description }}</p><p>Nesta Fase 1, esta página oferece somente navegação. Não há cadastros, processamento ou operações reais neste módulo.</p><a class="button primary" href="{{ url_for('dashboard.index') }}">{{ icon('arrow-left') }} Voltar ao dashboard</a></section>
+{% endblock %}

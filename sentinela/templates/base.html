@@ -1,0 +1,50 @@
+{% from 'components/macros.html' import icon, status %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Sentinela AI — console de demonstração da Fase 1.">
+  <title>{{ title|default('Console') }} · SENTINELA AI</title>
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/mark.svg') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <script defer src="{{ url_for('static', filename='vendor/lucide.min.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<a class="skip-link" href="#main">Pular para o conteúdo</a>
+{% if current_user.is_authenticated %}
+  <aside class="sidebar" id="sidebar" aria-label="Menu principal">
+    <button class="icon-button mobile-menu-close" id="menu-close" aria-label="Fechar menu">{{ icon('x') }}</button>
+    <a class="brand" href="{{ url_for('dashboard.index') }}" aria-label="Sentinela AI, início">
+      <span class="brand-mark">{{ icon('shield-check') }}</span>
+      <span class="brand-text">SENTINELA <b>AI</b><small>SECURITY INTELLIGENCE</small></span>
+    </a>
+    <div class="workspace-card"><span class="workspace-icon">{{ icon('building-2') }}</span><div><strong>{{ current_user.organization.name if current_user.organization else 'Plataforma' }}</strong><small>Ambiente local · Fase 1</small></div></div>
+    <p class="nav-caption">WORKSPACE</p>
+    <nav>
+      {% for endpoint, label, symbol, slug, description in navigation %}
+      <a href="{{ url_for(endpoint, slug=slug) if slug else url_for(endpoint) }}" class="nav-link {% if (request.endpoint == 'dashboard.index' and not slug) or (slug and active_slug|default('') == slug) %}active{% endif %}" {% if (request.endpoint == 'dashboard.index' and not slug) or (slug and active_slug|default('') == slug) %}aria-current="page"{% endif %} title="{{ label }}" aria-label="{{ label }}">
+        {{ icon(symbol) }}<span>{{ label }}</span>{% if slug %}<span class="future-dot" title="Ainda não implementado" aria-hidden="true"></span>{% endif %}
+      </a>
+      {% endfor %}
+    </nav>
+    <div class="sidebar-footer"><div>{{ icon('flask-conical') }}<span>Modo demonstração<small>Sem câmeras conectadas</small></span></div><span class="version">v0.1.0 · Fundação</span></div>
+  </aside>
+  <button class="sidebar-overlay" id="sidebar-overlay" aria-label="Fechar menu" hidden></button>
+  <div class="app-shell">
+    <header class="header">
+      <div class="header-start"><button class="icon-button" id="menu-toggle" aria-label="Recolher menu" aria-controls="sidebar" aria-expanded="true">{{ icon('panel-left') }}</button><div class="breadcrumb">Workspace <span>/</span> <strong>{{ title|default('Console') }}</strong></div></div>
+      <div class="header-end"><span class="environment-label"><span class="status-dot"></span>Desenvolvimento local</span><span class="header-divider"></span><div class="user-label"><strong>{{ current_user.email }}</strong><small>{{ {'organization_admin': 'Administrador da organização', 'operator': 'Operador', 'supervisor': 'Supervisor', 'platform_admin': 'Administrador da plataforma', 'access_user': 'Usuário de acesso'}.get(current_user.role, 'Usuário') }}</small></div><span class="avatar" aria-hidden="true">{{ current_user.email[0]|upper }}</span><form action="{{ url_for('auth.logout') }}" method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="icon-button" aria-label="Sair da conta" title="Sair da conta">{{ icon('log-out') }}</button></form></div>
+    </header>
+{% endif %}
+    <main id="main" class="{% if current_user.is_authenticated %}main-content{% else %}public-content{% endif %}">
+      {% with messages = get_flashed_messages(with_categories=true) %}{% for category, message in messages %}<div class="flash {{ category }}" role="alert">{{ message }}</div>{% endfor %}{% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+{% if current_user.is_authenticated %}<footer class="page-footer"><span>SENTINELA AI <span class="footer-dot">·</span> Plataforma de segurança empresarial</span><span>Fase 1 <span class="footer-dot">/</span> Ambiente de desenvolvimento</span></footer></div>{% endif %}
+{% block scripts %}{% endblock %}
+</body>
+</html>
