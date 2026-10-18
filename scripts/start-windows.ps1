@@ -12,7 +12,8 @@ if (-not (Test-Path '.venv\Scripts\python.exe')) {
     Invoke-Checked -Program 'py' -Arguments @('-3.12', '-m', 'venv', '.venv')
 }
 $Python = Join-Path (Get-Location) '.venv\Scripts\python.exe'
-Invoke-Checked -Program $Python -Arguments @('-m', 'pip', 'install', '-r', 'requirements.lock.txt')
+Invoke-Checked -Program $Python -Arguments @('scripts/check_python.py')
+Invoke-Checked -Program $Python -Arguments @('-m', 'pip', 'install', '--only-binary=:all:', '-r', 'requirements.lock.txt')
 Invoke-Checked -Program $Python -Arguments @('-m', 'pip', 'check')
 Invoke-Checked -Program $Python -Arguments @('-m', 'flask', '--app', 'app', 'db', 'upgrade')
 Invoke-Checked -Program $Python -Arguments @('-m', 'flask', '--app', 'app', 'setup-local')

@@ -40,8 +40,10 @@ câmera de demonstração nunca é apresentado como conexão com equipamento rea
 
 ## Requisitos
 
-Python **3.12** com pip/venv e acesso ao PyPI para instalar dependências.
-No Windows, instalar o Python com o launcher `py` e abrir a pasta no VS Code.
+CPython **3.12 de 64 bits** com pip/venv e acesso ao PyPI para instalar dependências.
+No Windows, use a edição **x64 (AMD64)**, instale o launcher `py` e abra a pasta no VS Code.
+O inicializador verifica o Python existente em `.venv` antes de instalar;
+ambientes criados com outra versão/arquitetura precisam ser recriados.
 SQLite deve ser 3.35 ou superior para operações atômicas e testes de rollback; o Python 3.12 oficial
 atende esse requisito. Não são necessários Node, FFmpeg, Docker, PostgreSQL, Redis,
 hardware ou API paga para rodar o modo de demonstração.
@@ -85,7 +87,8 @@ as políticas do sistema:
 
 ```powershell
 py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r requirements.lock.txt
+.\.venv\Scripts\python.exe scripts/check_python.py
+.\.venv\Scripts\python.exe -m pip install --only-binary=:all: -r requirements.lock.txt
 .\.venv\Scripts\python.exe -m pip check
 .\.venv\Scripts\python.exe -m flask --app app db upgrade
 .\.venv\Scripts\python.exe -m flask --app app setup-local
@@ -94,6 +97,40 @@ py -3.12 -m venv .venv
 
 Não precisa ativar `.venv`. O servidor de desenvolvimento fica em loopback.
 **Execução em Windows real permanece sem validação** nesta máquina Linux.
+
+## Erro do NumPy: compilador não encontrado
+
+Se aparecer `Preparing metadata`, Meson e `Unknown compiler(s)` ao instalar
+NumPy 2.2.6, o pip tentou compilar a biblioteca por não encontrar uma wheel
+compatível. Python/arquitetura diferentes do requisito ou configuração do índice
+podem causar isso. Não é necessário instalar compilador para o ambiente suportado.
+
+Feche o servidor e abra um terminal PowerShell na pasta do projeto. Primeiro,
+confira a instalação que será usada para criar o novo ambiente:
+
+```powershell
+py -3.12 -c "import sys, struct, sysconfig; print(sys.version); print(struct.calcsize('P') * 8); print(sysconfig.get_platform())"
+```
+
+O resultado precisa indicar **3.12**, **64** e **win-amd64**. Se não houver essa
+instalação, instale o [Python 3.12 para Windows x64](https://www.python.org/downloads/release/python-31210/)
+e reabra o terminal. Em seguida, renomeie o ambiente antigo, preservando-o:
+
+```powershell
+Rename-Item -Path .venv -NewName (".venv-antiga-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+py -3.12 -m venv .venv
+.\.venv\Scripts\python.exe scripts/check_python.py
+.\.venv\Scripts\python.exe -m pip install --only-binary=:all: -r requirements.lock.txt
+```
+
+Execute um comando por vez e prossiga somente se terminar sem erro. Não precisa
+ativar `.venv`. Preserve `instance/` e `.env`; banco, contas e chaves ficam fora
+do ambiente virtual. Depois de instalar com sucesso, abra `iniciar.bat`.
+
+A opção `--only-binary=:all:` impede tentativa de compilação. Se aparecer
+`No matching distribution found` mesmo com Python 3.12 x64 confirmado, confira
+o nome do pacote na mensagem e o índice de pacotes configurado; envie esse erro
+para diagnóstico. Não remova a opção nem desative TLS para contornar a falha.
 
 ## Linux / nuvem
 

@@ -110,3 +110,20 @@ O que passou é o protótipo do fluxo 1:1 e seu comparador artificial; isso **n�
 validação facial**, prova de vida, estudo de precisão, conformidade legal ou
 avaliação de diferenças entre grupos. Essas etapas, modelo/terminal real e
 política operacional continuam pendentes antes de qualquer futura ativação real.
+
+## Correção de instalação no Windows
+
+O inicializador agora confere CPython 3.12 de 64 bits antes de instalar e exige
+Windows AMD64 quando executado nesse sistema. Ambientes existentes incompatíveis
+são recusados com orientação de backup/recriação; não são apagados automaticamente.
+A instalação Windows usa `--only-binary=:all:` para evitar compilação involuntária
+de NumPy/OpenCV e demais dependências.
+
+Foram baixadas com sucesso as **41 wheels** do lockfile para o alvo
+CPython 3.12 / win_amd64 via `pip download --only-binary=:all: --platform win_amd64
+--python-version 3.12 --implementation cp --abi cp312`. Isso confirma disponibilidade
+e resolução dos pacotes desse alvo, sem executar binários Windows.
+A checagem foi exercitada no Python Linux atual e em simulações de versão 3.14,
+32 bits, Windows ARM64 e AMD64. Importação de cv2 e health HTTP 200 também passaram
+no Linux. **Execução real de CMD/PowerShell e dos binários Windows permanece não
+validada**; não foi instalado compilador nem alterado banco para essa correção.

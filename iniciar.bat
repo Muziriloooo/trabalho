@@ -12,6 +12,7 @@ echo.
 if not exist "app.py" goto erro_pasta
 if not exist "requirements.lock.txt" goto erro_pasta
 if not exist "scripts\start_local.py" goto erro_pasta
+if not exist "scripts\check_python.py" goto erro_pasta
 
 if exist ".venv\Scripts\python.exe" goto instalar
 echo Criando o ambiente Python 3.12...
@@ -21,8 +22,10 @@ py -3.12 -m venv ".venv"
 if errorlevel 1 goto erro_python
 
 :instalar
+".venv\Scripts\python.exe" "scripts\check_python.py"
+if errorlevel 1 goto erro
 echo Conferindo e instalando dependencias...
-".venv\Scripts\python.exe" -m pip install -r "requirements.lock.txt"
+".venv\Scripts\python.exe" -m pip install --only-binary=:all: -r "requirements.lock.txt"
 if errorlevel 1 goto erro
 ".venv\Scripts\python.exe" -m pip check
 if errorlevel 1 goto erro
@@ -48,7 +51,7 @@ exit /b 0
 :erro_python
 echo.
 echo Nao foi possivel criar o ambiente Python.
-echo Instale o Python 3.12 com o launcher py e tente novamente.
+echo Instale o Python 3.12 x64 com o launcher py e tente novamente.
 goto erro
 
 :erro_pasta
