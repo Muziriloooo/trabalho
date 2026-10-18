@@ -74,3 +74,20 @@ Arquivos ignorados `.venv/` e `instance/` são preparação local, nunca enviado
 Git. Instruções reutilizáveis são salvas no rascunho do ambiente; esse salvamento
 não publica o snapshot nem comprova restauração numa tarefa nova. O código pode
 ser enviado ao GitHub independentemente da publicação do ambiente da plataforma.
+
+## Player público do YouTube
+
+Após a inclusão do vídeo `CKpA7U_wAbw`, a suíte completa passou em **127 testes**.
+A página de Monitoramento inclui o exemplo público sem exigir cadastro de câmera.
+Os testes verificam autenticação/papéis e Cache-Control, ausência de iframe ou
+conexão externa antes do clique, ID/link exatos e CSP que permite somente
+www.youtube-nocookie.com como frame externo nessa página. Demais páginas mantêm
+frame-src 'none'.
+
+Chromium, com conteúdo externo controlado: carregamento após clique, URL oficial
+correta, referrer de origem necessário ao YouTube, nenhum cookie da aplicação no
+request externo, encerramento/reabertura, layout móvel e remoção após logout.
+Não foram alterados schema ou dependências. A reprodução do vídeo real não foi
+confirmada: a consulta oEmbed ao YouTube retornou HTTP 403 nesta nuvem. Erros de
+incorporação, transmissão encerrada e restrições do canal ficam a cargo do player
+oficial, com link para abrir no YouTube. Não houve extração/download do vídeo.

@@ -88,3 +88,14 @@ chave de cifra fornecida por um gerenciador seguro. Essa configuração ativa
 cookies Secure/HSTS, mas não instala TLS nem configura PostgreSQL. Redis,
 PostgreSQL, implantação, backups, MFA e avaliação de segurança operacional ficam
 pendentes. Não expor o servidor local de desenvolvimento à internet.
+
+### Exemplo público de YouTube
+
+A tela geral de Monitoramento tem um exemplo externo fixo, separado das câmeras.
+Seu iframe oficial é criado somente após clique e validação da sessão. CSP libera
+apenas https://www.youtube-nocookie.com para frames nessa página, com referrer
+strict-origin-when-cross-origin no iframe para identificação do player. O browser
+se conecta diretamente ao YouTube; o backend não extrai mídia, não verifica
+se está ao vivo e não o inclui no inventário/status de câmeras. Encerrar remove
+o iframe; a validação periódica de console também encerra o player se perder
+acesso. O vídeo público permanece acessível no YouTube fora da aplicação.

@@ -40,7 +40,7 @@ Dependências diretas: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Login,
 Flask-WTF, Flask-Limiter, python-dotenv, Waitress, cryptography, requests, tzdata
 (fusos também no Windows) e pytest. `requirements.lock.txt` fixa as versões
 transitivas verificadas. Chart.js, Lucide e hls.js são servidos localmente,
-com suas licenças; não há CDN em execução.
+com suas licenças. O player opcional do YouTube se conecta a serviços externos somente após o clique.
 
 ## Windows / VS Code
 
@@ -208,3 +208,24 @@ latência zero e não substitui um gateway de mídia preparado para produção.
 Veja [arquitetura](docs/architecture.md), [Fase 2](docs/phase-2.md),
 [Fases 3 e 4 / gateway](docs/media-gateway.md) e [validação](docs/validation.md).
 A Fase 5 e as seguintes dependem de nova autorização.
+
+## Transmissão pública do YouTube para teste
+
+Na página **Monitoramento**, sem filtros de unidade/câmera, está disponível o
+vídeo informado pelo usuário: `https://www.youtube.com/watch?v=CKpA7U_wAbw`.
+Clique **Carregar transmissão** para abrir o player oficial incorporado ou
+**Abrir no YouTube** para assistir diretamente no site. Não é necessário criar
+uma unidade, câmera IP, gateway ou chave de API para esse exemplo.
+
+O player externo só é carregado após o clique e usa youtube-nocookie.com. O
+navegador faz conexão com o YouTube; o vídeo não é baixado, extraído ou gravado
+pelo backend. **Encerrar player** remove a incorporação. A sessão é revalidada
+periodicamente; perder acesso encerra o player da página. O vídeo continua sendo
+público no YouTube e é separado do inventário e das métricas de câmeras.
+
+O canal pode encerrar a transmissão, restringir região/idade ou bloquear a
+incorporação. A interface não afirma que o vídeo está ao vivo ou disponível;
+nesses casos, use o link externo e as mensagens do player oficial. Esta inclusão
+não conecta a câmera doméstica iCSee. Os testes locais verificam incorporação e
+controles com um iframe controlado; a consulta pública ao YouTube nesta nuvem
+retornou HTTP 403, sem confirmação de reprodução da transmissão real.

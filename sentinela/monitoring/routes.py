@@ -12,6 +12,13 @@ from ..cameras.routes import status_payload
 bp = Blueprint("monitoring", __name__, url_prefix="/monitoring")
 
 
+@bp.get("/youtube/status")
+@console_required
+def youtube_status():
+    # Exemplo público, sem associação ao inventário privado de uma organização.
+    return jsonify(status="public", video_id="CKpA7U_wAbw")
+
+
 @bp.get("")
 @console_required
 def index():

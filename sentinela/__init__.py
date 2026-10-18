@@ -83,10 +83,11 @@ def create_app(test_config=None):
 
     @app.after_request
     def secure_headers(response):
+        frame_source = "https://www.youtube-nocookie.com" if request.endpoint == "monitoring.index" else "'none'"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
             "font-src 'self'; connect-src 'self'; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; "
-            "form-action 'self'; frame-ancestors 'none'"
+            f"form-action 'self'; frame-ancestors 'none'; frame-src {frame_source}"
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Referrer-Policy"] = "same-origin"
