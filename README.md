@@ -44,7 +44,21 @@ com suas licenças. O player opcional do YouTube se conecta a serviços externos
 
 ## Windows / VS Code
 
-No PowerShell, na raiz do projeto:
+Na pasta do projeto, dê **dois cliques em `iniciar.bat`**. O arquivo deve ficar
+ao lado de `app.py`, com a pasta `scripts/` completa. Ele cria o ambiente se
+necessário, instala/confere dependências, aplica migrações, solicita a conta no
+primeiro uso e inicia o servidor, abrindo o navegador. Não depende da execução
+de scripts PowerShell. Preserve a janela aberta; use Ctrl+C para encerrar.
+Em caso de erro, a janela permanece aberta para você copiar a mensagem.
+Os cadastros e usuários existentes são preservados.
+
+Também é possível executar pelo terminal do VS Code:
+
+```powershell
+.\iniciar.bat
+```
+
+O script PowerShell anterior continua disponível como alternativa:
 
 ```powershell
 .\scripts\start-windows.ps1
