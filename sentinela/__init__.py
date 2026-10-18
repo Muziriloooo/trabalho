@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from sqlalchemy import event
 from sqlalchemy.engine import Engine
 
@@ -60,13 +60,21 @@ def create_app(test_config=None):
     from .auth.routes import bp as auth_bp
     from .dashboard.routes import bp as dashboard_bp
     from .core.routes import bp as core_bp
-    from .cli import setup_local
+    from .organizations.routes import bp as organizations_bp
+    from .organizations.team import bp as team_bp
+    from .sites.routes import bp as sites_bp
+    from .cameras.routes import bp as cameras_bp
+    from .monitoring.routes import bp as monitoring_bp
+    from .cli import setup_local, create_account
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(core_bp)
+    for blueprint in (organizations_bp, team_bp, sites_bp, cameras_bp, monitoring_bp):
+        app.register_blueprint(blueprint)
     app.cli.add_command(setup_local)
+    app.cli.add_command(create_account)
 
-    for code in (400, 403, 404, 413, 429, 500):
+    for code in (400, 403, 404, 409, 413, 429, 500):
         def handle_error(error, status=code):
             if status == 500:
                 db.session.rollback()
@@ -77,7 +85,7 @@ def create_app(test_config=None):
     def secure_headers(response):
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "
-            "font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+            "font-src 'self'; connect-src 'self'; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; "
             "form-action 'self'; frame-ancestors 'none'"
         )
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -86,7 +94,7 @@ def create_app(test_config=None):
         response.headers["X-Frame-Options"] = "DENY"
         if app.config["ENVIRONMENT"] == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
-        if response.mimetype == "text/html":
+        if response.mimetype == "text/html" or request.path.startswith(("/monitoring", "/cameras")):
             response.headers["Cache-Control"] = "no-store"
         return response
 

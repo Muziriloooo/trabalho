@@ -1,6 +1,7 @@
 import re
 
 import pytest
+from cryptography.fernet import Fernet
 from werkzeug.security import generate_password_hash
 
 from sentinela import create_app
@@ -15,7 +16,8 @@ TEST_HASH = generate_password_hash(TEST_PASSWORD)
 def app(monkeypatch):
     monkeypatch.setenv("SENTINELA_ENV", "development")
     app = create_app({"TESTING": True, "SECRET_KEY": "test-session-key-only",
-                      "SQLALCHEMY_DATABASE_URI": "sqlite://", "RATELIMIT_ENABLED": False})
+                      "SQLALCHEMY_DATABASE_URI": "sqlite://", "RATELIMIT_ENABLED": False,
+                      "CAMERA_ENCRYPTION_KEY": Fernet.generate_key()})
     # Rota apenas da instância de teste para exercitar o handler 500 real.
     @app.get("/test-internal-failure")
     def fail():

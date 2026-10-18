@@ -28,4 +28,11 @@ def environment_config():
         "RATELIMIT_STORAGE_URI": "memory://",
         "RATELIMIT_ENABLED": True,
         "RATELIMIT_HEADERS_ENABLED": True,
+        "CAMERA_ENCRYPTION_KEY": os.getenv("CAMERA_ENCRYPTION_KEY"),
+        "MEDIA_GATEWAY_HLS_URL": os.getenv("MEDIA_GATEWAY_HLS_URL", ""),
+        "MEDIA_GATEWAY_API_URL": os.getenv("MEDIA_GATEWAY_API_URL", ""),
+        "MEDIA_GATEWAY_ALLOWED_HOSTS": [v.strip().lower() for v in os.getenv("MEDIA_GATEWAY_ALLOWED_HOSTS", "").split(",") if v.strip()],
+        "MEDIA_GATEWAY_ALLOWED_PORTS": [int(v) for v in os.getenv("MEDIA_GATEWAY_ALLOWED_PORTS", "443").split(",")],
+        "MEDIA_GATEWAY_TIMEOUT": (3, 8),
+        "CAMERA_STATUS_TTL": 90,
     }

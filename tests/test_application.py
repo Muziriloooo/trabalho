@@ -10,7 +10,7 @@ from conftest import token_from
 def test_database_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json == {"status": "ok", "version": "0.1.0", "phase": 1}
+    assert response.json == {"status": "ok", "version": "0.4.0", "phase": 4}
 
 
 @pytest.mark.parametrize("path", ["/", *[f"/modules/{item[3]}" for item in NAVIGATION if item[3]]])
@@ -27,14 +27,14 @@ def test_dashboard_and_org_context(client, login):
     assert "Empresa de teste" in response.text
     assert "Outra organização" not in response.text
     assert "DADOS DE EXEMPLO" in response.text
-    assert "Nenhuma câmera está conectada" in response.text
+    assert "Estes dados não refletem o inventário cadastrado" in response.text
     assert "activity-chart" in response.text
     assert "Status de exemplo" in response.text
     assert response.text.count('class="metric-card"') == 6
     assert response.headers["Cache-Control"] == "no-store"
 
 
-@pytest.mark.parametrize("slug", [item[3] for item in NAVIGATION if item[3]])
+@pytest.mark.parametrize("slug", [item[3] for item in NAVIGATION if item[0] == "core.module"])
 def test_future_pages_are_explicit(client, login, slug):
     login()
     response = client.get(f"/modules/{slug}")

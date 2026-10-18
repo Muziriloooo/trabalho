@@ -24,7 +24,7 @@ class LoginForm(FlaskForm):
 @limiter.limit("5 per minute", methods=["POST"])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("dashboard.index"))
+        return redirect(url_for("organizations.index" if current_user.role == "platform_admin" else "dashboard.index"))
     form = LoginForm()
     if form.validate_on_submit():
         email = form.email.data.strip().lower()
@@ -34,7 +34,7 @@ def login():
             session.clear()
             login_user(user, remember=False, fresh=True)
             session.permanent = True
-            return redirect(url_for("dashboard.index"))
+            return redirect(url_for("organizations.index" if current_user.role == "platform_admin" else "dashboard.index"))
         flash("E-mail ou senha inválidos.", "error")
         return render_template("auth/login.html", form=form), 401
     return render_template("auth/login.html", form=form), 400 if form.is_submitted() else 200

@@ -1,7 +1,9 @@
-from flask import Blueprint, abort, jsonify, render_template
-from sqlalchemy import text
+from flask import Blueprint, abort, jsonify, redirect, render_template, url_for
+from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from ..extensions import db
+from ..models import Camera, Organization, RoleAssignment, Site, User
 from .navigation import NAVIGATION
 from .permissions import console_required
 
@@ -16,6 +18,9 @@ def navigation_context():
 @bp.get("/modules/<slug>")
 @console_required
 def module(slug):
+    implemented = {"cameras": "cameras.index", "monitoring": "monitoring.index", "sites": "sites.index", "users": "team.index"}
+    if slug in implemented:
+        return redirect(url_for(implemented[slug]))
     item = next((item for item in NAVIGATION if item[3] == slug), None)
     if not item:
         abort(404)
@@ -25,11 +30,9 @@ def module(slug):
 @bp.get("/health")
 def health():
     try:
-        db.session.execute(text("SELECT 1"))
-        # Além da conexão, verifica que o schema mínimo foi migrado.
-        db.session.execute(text("SELECT id FROM organization LIMIT 1"))
-        db.session.execute(text("SELECT id FROM user LIMIT 1"))
-    except Exception:
+        for model in (Organization, User, Site, RoleAssignment, Camera):
+            db.session.execute(select(model).limit(1))
+    except SQLAlchemyError:
         db.session.rollback()
         return jsonify(status="unavailable"), 503
-    return jsonify(status="ok", version="0.1.0", phase=1)
+    return jsonify(status="ok", version="0.4.0", phase=4)

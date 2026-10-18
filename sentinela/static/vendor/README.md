@@ -12,3 +12,6 @@ aquisição. A aplicação não faz requisições a CDN e não exige Node/npm pa
 Para atualizar conscientemente: instalar as versões desejadas num diretório
 temporário com npm (sem scripts), copiar os bundles UMD e licenças e atualizar o
 registro de versões/integridades. Revalidar CSP, ícones e gráficos no navegador.
+
+- hls.js 1.6.15 — Apache-2.0 (`HLS-LICENSE` e `APACHE-2.0.txt`).
+  Reprodução HLS no navegador; bundle oficial npm, integridade verificada.

@@ -1,34 +1,30 @@
-# Plano da Fase 2 — depende de aprovação
+# Fase 2 — Organizações, unidades e escopos
 
-Nenhum CRUD desta fase foi implementado.
+Implementada junto às Fases 3 e 4 com autorização do usuário.
 
-1. **Papéis e escopos.** Definir a matriz de leitura/escrita de organizações e
-   unidades; evoluir para RoleAssignment com escopo de unidade e concessor.
-   Manter o superadministrador sem acesso automático a dados de clientes.
-2. **Banco e migrações.** Evoluir Organization com identificador e responsável;
-   Site com identificador único por organização, endereço comercial opcional,
-   responsável, status e timezone IANA validado. Criar constraints, índices e
-   migrações preservando usuários existentes. Validar upgrade e rollback em base
-   temporária; validar PostgreSQL antes de adotá-lo em operação.
-3. **Escopo obrigatório no backend.** Resolver a organização pela sessão.
-   Consultas e alterações sempre recebem esse escopo. Não aceitar
-   organization_id arbitrário do formulário. Recursos de outro cliente retornam
-   404, sem confirmar sua existência. Papel ou unidade insuficiente retorna 403.
-4. **Fluxos funcionais.** Criar telas de listagem, pesquisa, cadastro, edição e
-   desativação com validação, CSRF, mensagens claras, estados vazios e confirmação
-   das ações. Organização e unidade inativas impedem novas operações conforme
-   a política definida. Adiar remoção definitiva enquanto houver dependências.
-5. **Dados demonstrativos.** Separar a opção de demonstração dos cadastros reais.
-   Ainda sem câmeras cadastráveis: contagem real por unidade deve ser zero, com
-   indicação explícita de que o inventário será implementado na Fase 3.
-6. **Testes.** Criar duas organizações com administradores, supervisores,
-   operadores e unidades distintas. Verificar isolamento em GET/POST, alteração
-   de IDs na URL e no corpo, concessão de escopo, revogação, entradas inválidas,
-   duplicidade, timezone, organização inativa, CSRF e escape de conteúdo.
-   Verificar persistência após reinício e integridade das relações.
-7. **Aceitação.** Demonstrar os fluxos com dados locais; executar suíte completa;
-   confirmar ausência de acesso cruzado, documentar a matriz e limites; atualizar
-   README e migrações. Aguardar nova aprovação antes da Fase 3.
+- Plataforma: cadastro/edição/desativação dos metadados de organizações.
+  Não concede leitura de recursos dos clientes.
+- Organização: administrador edita somente a sua organização, cadastra e altera
+  unidades com nome, identificador, endereço opcional, responsável, descrição,
+  fuso IANA e estado. Contagem de câmeras vem do banco, com busca/filtro.
+- Equipe: cadastro local de operador/supervisor, ativação/desativação,
+  concessão de papel e escopo por unidade ou por toda a organização, revogação.
+  Novo operador começa sem acesso a unidades.
+- Isolamento: organização da sessão, filtros no backend, 404 para recursos de
+  outro cliente ou sem escopo, FKs compostas no banco para relações entre clientes.
+- Desativação: requer confirmação. Bloqueia acesso da organização ou reprodução
+  das câmeras da unidade. Unidades não são removidas fisicamente nesta entrega.
+- Migração: preserva usuários e unidades legadas; exige concessão explícita de
+  acesso operacional aos operadores existentes.
+- Provisionamento: comandos `setup-local` e `create-account`, sem senhas padrão.
 
-Fora da Fase 2: câmeras reais, streaming, análise de vídeo, biometria, cobranças,
-acionamento de hardware e disponibilização comercial.
+Validação: testes de CRUD, fuso inválido, duplicidade, confirmação, IDs alterados
+na URL e formulário, papéis, escopos, revogação, contas/unidades inativas,
+relações no banco e preservação de dados. Fluxo também executado em navegador.
+Consulte `validation.md` para evidências e `architecture.md` para a matriz.
+
+Limites: sem convite por e-mail, recuperação de senha, MFA ou delegação de novos
+administradores pela interface. PostgreSQL não foi executado; a validação de
+produção é uma etapa separada. Cadastro local de equipe foi antecipado somente
+para tornar os escopos funcionais. Administração e auditoria completas continuam
+na Fase 11. As Fases 5 em diante aguardam autorização.
