@@ -28,6 +28,7 @@ def environment_config():
         "RATELIMIT_STORAGE_URI": "memory://",
         "RATELIMIT_ENABLED": True,
         "RATELIMIT_HEADERS_ENABLED": True,
+        "BIOMETRIC_TEST_KEY": os.getenv("BIOMETRIC_TEST_KEY"),
         "CAMERA_ENCRYPTION_KEY": os.getenv("CAMERA_ENCRYPTION_KEY"),
         "MEDIA_GATEWAY_HLS_URL": os.getenv("MEDIA_GATEWAY_HLS_URL", ""),
         "MEDIA_GATEWAY_API_URL": os.getenv("MEDIA_GATEWAY_API_URL", ""),

@@ -68,15 +68,18 @@ def create_app(test_config=None):
     from .events.routes import bp as events_bp
     from .alerts.routes import bp as alerts_bp
     from .access.routes import bp as access_bp
-    from .cli import setup_local, create_account, process_analysis
+    from .verification.routes import bp as verification_bp
+    from .reports.routes import bp as reports_bp
+    from .cli import setup_local, create_account, process_analysis, purge_verification_tests
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(core_bp)
-    for blueprint in (organizations_bp, team_bp, sites_bp, cameras_bp, monitoring_bp, events_bp, alerts_bp, access_bp):
+    for blueprint in (organizations_bp, team_bp, sites_bp, cameras_bp, monitoring_bp, events_bp, alerts_bp, access_bp, verification_bp, reports_bp):
         app.register_blueprint(blueprint)
     app.cli.add_command(setup_local)
     app.cli.add_command(create_account)
     app.cli.add_command(process_analysis)
+    app.cli.add_command(purge_verification_tests)
 
     for code in (400, 403, 404, 409, 413, 429, 500):
         def handle_error(error, status=code):
@@ -99,7 +102,7 @@ def create_app(test_config=None):
         response.headers["X-Frame-Options"] = "DENY"
         if app.config["ENVIRONMENT"] == "production":
             response.headers["Strict-Transport-Security"] = "max-age=31536000"
-        if response.mimetype == "text/html" or request.path.startswith(("/monitoring", "/cameras", "/access", "/events", "/alerts")):
+        if response.mimetype == "text/html" or request.path.startswith(("/monitoring", "/cameras", "/access", "/events", "/alerts", "/verification", "/reports")):
             response.headers["Cache-Control"] = "no-store"
         return response
 

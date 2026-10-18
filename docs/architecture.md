@@ -1,4 +1,4 @@
-# Arquitetura — Fases 1 a 7
+# Arquitetura — Fases 1 a 10
 
 Monólito modular Flask com application factory, SQLite e migrações Alembic.
 `app.py` é a entrada WSGI, `config.py` centraliza configuração por ambiente.
@@ -7,7 +7,7 @@ Monólito modular Flask com application factory, SQLite e migrações Alembic.
 | --- | --- |
 | auth | Sessão local, login limitado, logout POST e CSRF |
 | core | Navegação, validação, escopo por unidade, health e erros |
-| dashboard | Indicadores e eventos explicitamente demonstrativos |
+| dashboard / services/analytics | Indicadores calculados no banco, escopo, filtros, gráficos e tabelas |
 | organizations | Metadados de organizações e provisionamento local de equipe/escopos |
 | sites | Unidades com cadastro, edição, busca e desativação |
 | cameras | Inventário, autorização de operação, cifras e histórico de disponibilidade |
@@ -17,6 +17,8 @@ Monólito modular Flask com application factory, SQLite e migrações Alembic.
 | events / services/vision / analysis | Política por câmera, análise limitada, fila SQLite e eventos com origem |
 | alerts | Ocorrências, responsáveis, histórico, transições e notificações no console |
 | access / services/access | Pessoas mínimas, pontos simulados, permissões, tokens de uso único e decisões |
+| verification / services/verification | Protótipo 1:1 artificial, política, autorização, cifra, desafio e exclusão |
+| reports / services/reports | Snapshots agregados, logo normalizado, CSV/PDF locais e exportação auditada |
 | services/audit | Registro mínimo de alterações administrativas sem payload de credenciais |
 
 ## Modelo e fronteira de cliente
@@ -131,3 +133,32 @@ minutos geram alerta simulado, limitado por janela de cinco minutos.
 Fontes permanecem explícitas: `synthetic`, `gateway`, `youtube_client` (relato
 manual) e `access_simulation`. O player do YouTube não fornece quadros ao worker.
 Consulte [operação e limites](phases-5-7.md).
+
+## Fases 8–10
+
+`da64a0b27c33` adiciona VerificationPolicy, VerificationEnrollment,
+VerificationChallenge, VerificationRecord, OrganizationBranding e ReportRun.
+Índices únicos nas entidades de acesso suportam as FKs compostas das novas
+referências; são criados antes das tabelas dependentes. O upgrade é aditivo;
+rollback remove as novas tabelas e só depois seus índices de suporte. Migração
+com acessos/credenciais preenchidos e novos resultados também foi validada.
+
+O verificador aceita exclusivamente fixtures de vetores artificiais: o método
+não é um modelo facial treinado. A credencial seleciona uma referência, cifrada
+com Fernet em chave exclusiva do teste. Desafio liga organização, ponto, credencial
+e operador por dois minutos/uso único. A decisão final reconfirma credencial,
+permissão, política e referência em consumo condicional. Resultados não guardam
+vetores, pontuações ou capturas. Modo de produção bloqueia este protótipo.
+
+Analytics usa consultas por organização/unidades atuais. Disponibilidade integra
+intervalos de verificações por no máximo CAMERA_STATUS_TTL (padrão 90 segundos),
+sem interpolar lacunas. Contagens/tendências separam fontes. Tempos de alerta
+usam timestamps persistidos. Consulta limitada a 92 dias/100 mil observações
+por conjunto; limite excedido é um erro explícito, nunca estatística parcial.
+
+ReportRun preserva o snapshot agregado, escopos cobertos, finalidade, responsável,
+data, identificador e logo normalizado, sem template ou relatório individual de
+acesso. Consulta/exportação reconferem permissões atuais e autor/admin; auditoria
+administrativa exige administrador da organização. Exportação exige POST e CSRF,
+registra AuditLog e retorna no-store. CSV neutraliza fórmulas; PDF usa ReportLab
+local sem HTML ou recursos remotos. Consulte [critérios e limites](phases-8-10.md).

@@ -109,5 +109,5 @@ alertas e cadastros/decisões de acesso. Rollbacks são testados em bases tempor
 
 Veja [validação](validation.md). Windows real, câmera física, MediaMTX remoto,
 reprodução efetiva do YouTube, PostgreSQL e implantação pública não foram
-validados. O dashboard ainda apresenta fixtures identificadas. A Fase 8 e
-seguintes aguardam nova autorização.
+validados. O dashboard foi substituído por cálculos na Fase 9. As Fases 8–10 foram
+autorizadas; veja phases-8-10.md. A Fase 11 e seguintes aguardam autorização.

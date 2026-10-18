@@ -27,4 +27,4 @@ Limites: sem convite por e-mail, recuperação de senha, MFA ou delegação de n
 administradores pela interface. PostgreSQL não foi executado; a validação de
 produção é uma etapa separada. Cadastro local de equipe foi antecipado somente
 para tornar os escopos funcionais. Administração e auditoria completas continuam
-na Fase 11. As Fases 5–7 foram autorizadas e implementadas; veja phases-5-7.md. A Fase 8 e seguintes aguardam autorização.
+na Fase 11. As Fases 5–7 foram autorizadas e implementadas; veja phases-5-7.md. As Fases 8–10 foram autorizadas; a verificação 1:1 permanece em protótipo artificial. A Fase 11 e seguintes aguardam autorização.

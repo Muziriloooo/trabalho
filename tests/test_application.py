@@ -10,7 +10,7 @@ from conftest import token_from
 def test_database_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json == {"status": "ok", "version": "0.7.0", "phase": 7}
+    assert response.json == {"status": "ok", "version": "0.10.0", "phase": 10}
 
 
 @pytest.mark.parametrize("path", ["/", *[f"/modules/{item[3]}" for item in NAVIGATION if item[3]]])
@@ -26,11 +26,12 @@ def test_dashboard_and_org_context(client, login):
     assert response.status_code == 200
     assert "Empresa de teste" in response.text
     assert "Outra organização" not in response.text
-    assert "DADOS DE EXEMPLO" in response.text
-    assert "Estes dados não refletem o inventário cadastrado" in response.text
+    assert "Indicadores operacionais" in response.text
+    assert "Nenhum evento no período" in response.text
+    assert "DADOS DE EXEMPLO" not in response.text
     assert "activity-chart" in response.text
-    assert "Status de exemplo" in response.text
-    assert response.text.count('class="metric-card"') == 6
+    assert "Últimos 20 eventos do período" in response.text
+    assert response.text.count('class="metric-card"') == 12
     assert response.headers["Cache-Control"] == "no-store"
 
 

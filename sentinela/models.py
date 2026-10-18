@@ -1,4 +1,4 @@
-"""Entidades das Fases 1–7, sem dados biométricos."""
+"""Entidades das Fases 1–10; verificação exclusivamente com dados artificiais."""
 from datetime import datetime, timezone
 from uuid import uuid4
 
@@ -283,7 +283,8 @@ class AccessCredential(db.Model):
     used_at = db.Column(db.DateTime(timezone=True))
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     __table_args__ = (ForeignKeyConstraint(["subject_id", "organization_id"], ["access_subject.id", "access_subject.organization_id"]),
-                      CheckConstraint("credential_type = 'one_time'", name="credential_type"))
+                      CheckConstraint("credential_type = 'one_time'", name="credential_type"),
+                      Index('uq_credential_id_org', 'id', 'organization_id', unique=True))
 
 
 class AccessEvent(db.Model):
@@ -300,4 +301,92 @@ class AccessEvent(db.Model):
     __table_args__ = (ForeignKeyConstraint(["access_point_id", "organization_id"], ["access_point.id", "access_point.organization_id"]),
                       ForeignKeyConstraint(["subject_id", "organization_id"], ["access_subject.id", "access_subject.organization_id"]),
                       ForeignKeyConstraint(["site_id", "organization_id"], ["site.id", "site.organization_id"]),
-                      CheckConstraint("decision in ('allowed','denied')", name="access_decision"))
+                      CheckConstraint("decision in ('allowed','denied')", name="access_decision"),
+                      Index('uq_access_event_id_org_site', 'id', 'organization_id', 'site_id', unique=True))
+
+
+class VerificationPolicy(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False, unique=True)
+    enabled = db.Column(db.Boolean, nullable=False, default=False)
+    version = db.Column(db.Integer, nullable=False, default=1)
+    purpose = db.Column(db.String(500), nullable=False)
+    controller = db.Column(db.String(120), nullable=False)
+    legal_review = db.Column(db.String(500), nullable=False)
+    risk_review = db.Column(db.String(500), nullable=False)
+    necessity_review = db.Column(db.String(500), nullable=False)
+    workplace_review = db.Column(db.String(500), nullable=False)
+    alternative = db.Column(db.String(500), nullable=False)
+    retention_days = db.Column(db.Integer, nullable=False, default=7)
+    model_version = db.Column(db.String(40), nullable=False, default='synthetic-vector-v1')
+    threshold = db.Column(db.Float, nullable=False, default=.95)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    __table_args__ = (CheckConstraint('retention_days >= 1 AND retention_days <= 30', name='verification_retention'),
+                      CheckConstraint('threshold >= 0.5 AND threshold <= 1', name='verification_threshold'))
+
+
+class VerificationEnrollment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, nullable=False)
+    subject_id = db.Column(db.Integer, nullable=False, unique=True)
+    policy_version = db.Column(db.Integer, nullable=False)
+    model_version = db.Column(db.String(40), nullable=False)
+    ciphertext = db.Column(db.LargeBinary, nullable=True)
+    authorization_reference = db.Column(db.String(240), nullable=False, default='')
+    enrolled_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    enrolled_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    revoked_at = db.Column(db.DateTime(timezone=True))
+    __table_args__ = (ForeignKeyConstraint(['subject_id', 'organization_id'], ['access_subject.id', 'access_subject.organization_id']),)
+
+
+class VerificationChallenge(db.Model):
+    id = db.Column(db.String(32), primary_key=True, default=lambda: uuid4().hex)
+    organization_id = db.Column(db.Integer, nullable=False)
+    site_id = db.Column(db.Integer, nullable=False)
+    point_id = db.Column(db.Integer, nullable=False)
+    credential_id = db.Column(db.Integer, nullable=False)
+    actor_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
+    used_at = db.Column(db.DateTime(timezone=True))
+    __table_args__ = (ForeignKeyConstraint(['point_id', 'organization_id'], ['access_point.id', 'access_point.organization_id']),
+                      ForeignKeyConstraint(['site_id', 'organization_id'], ['site.id', 'site.organization_id']),
+                      ForeignKeyConstraint(['credential_id','organization_id'], ['access_credential.id','access_credential.organization_id']))
+
+
+class VerificationRecord(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False, index=True)
+    site_id = db.Column(db.Integer, nullable=False)
+    access_event_id = db.Column(db.Integer, nullable=False, unique=True)
+    credential_id = db.Column(db.Integer, nullable=True)
+    outcome = db.Column(db.String(32), nullable=False)
+    model_version = db.Column(db.String(40), nullable=False, default='synthetic-vector-v1')
+    occurred_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
+    __table_args__ = (ForeignKeyConstraint(['site_id', 'organization_id'], ['site.id', 'site.organization_id']),
+                      ForeignKeyConstraint(['credential_id','organization_id'], ['access_credential.id','access_credential.organization_id']),
+                      ForeignKeyConstraint(['access_event_id','organization_id','site_id'], ['access_event.id','access_event.organization_id','access_event.site_id']))
+
+
+class OrganizationBranding(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False, unique=True)
+    logo_png = db.Column(db.LargeBinary, nullable=False)
+
+
+class ReportRun(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    identifier = db.Column(db.String(32), nullable=False, unique=True, default=lambda: uuid4().hex)
+    organization_id = db.Column(db.Integer, db.ForeignKey('organization.id'), nullable=False, index=True)
+    generated_by = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    organization_name = db.Column(db.String(120), nullable=False)
+    generator_name = db.Column(db.String(254), nullable=False)
+    kind = db.Column(db.String(32), nullable=False)
+    purpose = db.Column(db.String(240), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    source = db.Column(db.String(24), nullable=False)
+    site_ids = db.Column(db.JSON, nullable=False)
+    payload = db.Column(db.JSON, nullable=False)
+    logo_png = db.Column(db.LargeBinary, nullable=True)
+    generated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)

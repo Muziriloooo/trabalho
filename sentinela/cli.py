@@ -74,3 +74,23 @@ def process_analysis(limit, recover_stale):
     ids = list(db.session.scalars(select(AnalysisJob.id).where(AnalysisJob.status == "pending").order_by(AnalysisJob.id).limit(limit)))
     count = sum(int(run_job(job_id)) for job_id in ids)
     click.echo(f"Tarefas processadas: {count}. Consulte o resultado em Eventos.")
+
+
+@click.command('purge-verification-tests')
+@with_appcontext
+def purge_verification_tests():
+    """Exclui conteúdo artificial expirado/revogado e desafios antigos; não toca em imagens."""
+    from sqlalchemy import delete
+    from .models import VerificationChallenge, VerificationEnrollment, VerificationPolicy, utcnow
+    from .services.verification import erase
+    now=utcnow()
+    rows=db.session.scalars(select(VerificationEnrollment).outerjoin(VerificationPolicy,
+         VerificationPolicy.organization_id==VerificationEnrollment.organization_id).where(VerificationEnrollment.ciphertext.is_not(None),
+         (VerificationEnrollment.expires_at<=now) | (VerificationEnrollment.revoked_at.is_not(None)) |
+         (VerificationPolicy.id.is_(None)) | (VerificationPolicy.enabled.is_(False)) |
+         (VerificationEnrollment.policy_version!=VerificationPolicy.version) |
+         (VerificationEnrollment.model_version!=VerificationPolicy.model_version))).all()
+    for row in rows:erase(row,now)
+    db.session.execute(delete(VerificationChallenge).where(VerificationChallenge.expires_at < now-timedelta(days=1)))
+    db.session.commit()
+    click.echo(f'Referências sintéticas excluídas: {len(rows)}. Nenhum dado facial real é processado.')

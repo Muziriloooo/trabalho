@@ -120,3 +120,47 @@ def test_phase7_upgrade_preserves_camera_and_existing_history(tmp_path, monkeypa
         upgrade(directory=directory)
         assert app.test_client().get("/health").status_code == 200
         db.session.remove(); db.engine.dispose()
+
+
+def test_phase10_upgrade_and_downgrade_preserve_populated_phase7(tmp_path,monkeypatch):
+    from datetime import date
+    from sentinela.models import AccessCredential, AccessEvent, AccessPermission, AccessPoint, AccessSubject, Organization, ReportRun, VerificationPolicy
+    from sentinela.services.access import issue
+    from sentinela.services import verification
+    from cryptography.fernet import Fernet
+    from sqlalchemy import select
+    monkeypatch.setenv('SENTINELA_ENV','development')
+    app=create_app({'TESTING':True,'SQLALCHEMY_DATABASE_URI':f"sqlite:///{tmp_path / 'phase7.db'}",'RATELIMIT_ENABLED':False,'BIOMETRIC_TEST_KEY':Fernet.generate_key()})
+    directory=str(Path(__file__).resolve().parents[1]/'migrations')
+    with app.app_context():
+        upgrade(directory=directory,revision='0e0fdb6387b6')
+        org=Organization(name='Existing phase7');db.session.add(org);db.session.flush()
+        user=User(email='phase7@example.test',organization_id=org.id,role='organization_admin',password_hash=TEST_HASH)
+        site=Site(name='Existing site',organization_id=org.id)
+        subject=AccessSubject(organization_id=org.id,display_name='Existing subject',external_reference='existing')
+        db.session.add_all([user,site,subject]);db.session.flush()
+        point=AccessPoint(organization_id=org.id,site_id=site.id,name='Existing point')
+        permission=AccessPermission(organization_id=org.id,site_id=site.id,subject_id=subject.id)
+        db.session.add_all([point,permission]);db.session.flush()
+        credential,token=issue(subject,300)
+        event=AccessEvent(organization_id=org.id,site_id=site.id,access_point_id=point.id,actor_id=user.id,decision='denied',reason_code='invalid')
+        db.session.add(event);db.session.commit()
+        event_id,credential_id=event.id,credential.id
+        upgrade(directory=directory)
+        policy=VerificationPolicy(organization_id=org.id,enabled=True,purpose='test',controller='test',legal_review='test',risk_review='test',necessity_review='test',workplace_review='test',alternative='token')
+        db.session.add(policy);db.session.flush()
+        verification.enroll(subject,policy,user.id,'test')
+        challenge,result=verification.start(point,token,user.id)
+        assert challenge and result is None
+        assert verification.finish(challenge,point,user.id,'match').outcome=='approved'
+        db.session.add(ReportRun(organization_id=org.id,generated_by=user.id,organization_name=org.name,generator_name=user.email,
+            kind='access',purpose='test',start_date=date(2026,10,15),end_date=date(2026,10,15),source='all',site_ids=[site.id],payload={'rows':[]}))
+        db.session.commit()
+        downgrade(directory=directory,revision='0e0fdb6387b6')
+        assert db.session.get(AccessEvent,event_id).decision=='denied'
+        assert db.session.get(AccessCredential,credential_id).used_at
+        assert 'report_run' not in inspect(db.engine).get_table_names()
+        db.session.commit();upgrade(directory=directory)
+        assert db.session.scalar(select(AccessSubject.display_name))=='Existing subject'
+        assert app.test_client().get('/health').status_code==200
+        db.session.remove();db.engine.dispose()

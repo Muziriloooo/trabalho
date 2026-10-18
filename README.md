@@ -1,10 +1,12 @@
 # SENTINELA AI
 
-Plataforma de segurança empresarial — **Fases 1 a 7**.
+Plataforma de segurança empresarial — **Fases 1 a 10**.
 
 Monólito modular Flask com autenticação local, organizações e unidades,
 permissões por unidade, inventário de câmeras, monitoramento, análise de amostras,
-central de alertas e controle de acesso simulado com credenciais de uso único.
+central de alertas, controle de acesso simulado, dashboard operacional e relatórios.
+A Fase 8 é um protótipo do fluxo 1:1 exclusivamente com dados artificiais;
+biometria facial real permanece desativada.
 SQLite e vídeo sintético permitem desenvolver e demonstrar o produto sem câmera,
 serviço pago ou infraestrutura de mídia. Câmeras reais usam MediaMTX por HTTPS.
 
@@ -25,11 +27,15 @@ serviço pago ou infraestrutura de mídia. Câmeras reais usam MediaMTX por HTTP
 - Análise autorizada de movimento/possível obstrução em amostras com área e horário.
 - Central de alertas com responsáveis, histórico, justificativas e deduplicação.
 - Pessoas, pontos de acesso simulados e credenciais temporárias revogáveis de uso único.
+- Protótipo 1:1 com credencial primeiro, referência artificial cifrada, retenção e exclusão.
+- Dashboard com indicadores calculados, filtros e gráficos com tabelas acessíveis.
+- Relatórios com logo da organização, identificador, responsável e exportação CSV/PDF.
 - Migrações que preservam cadastros anteriores e testes de isolamento entre clientes.
 
-**O dashboard inicial ainda usa dados de exemplo**, claramente identificados, e
-não calcula métricas operacionais do inventário. Eventos, alertas e decisões simuladas são persistidos nos respectivos módulos.
-Biometria, relatórios e cobranças permanecem nas fases futuras. O cadastro de uma
+**O dashboard agora calcula indicadores a partir do banco**, com escopo, período
+e origem. Fontes sintéticas, relatos manuais do YouTube e decisões simuladas
+continuam identificados; não são apresentados como câmeras ou acessos físicos reais.
+Biometria real e cobranças permanecem desativadas. Relatórios são agregados e autorizados. O cadastro de uma
 câmera de demonstração nunca é apresentado como conexão com equipamento real.
 
 ## Requisitos
@@ -42,7 +48,7 @@ hardware ou API paga para rodar o modo de demonstração.
 
 Dependências diretas: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Login,
 Flask-WTF, Flask-Limiter, python-dotenv, Waitress, cryptography, requests, tzdata
-(fusos também no Windows), OpenCV headless e pytest. `requirements.lock.txt` fixa as versões
+(fusos também no Windows), OpenCV headless, ReportLab, Pillow e pytest. `requirements.lock.txt` fixa as versões
 transitivas verificadas. Chart.js, Lucide e hls.js são servidos localmente,
 com suas licenças. O player opcional do YouTube se conecta a serviços externos somente após o clique.
 
@@ -104,7 +110,7 @@ testes. Pode ser repetido sem apagar o banco. `start.sh` inicia Waitress em
 loopback, na porta 5000. Reinicie os processos ao retomar uma tarefa ou após
 alterar código/templates; as migrações não são executadas ao importar a aplicação.
 
-GET `/health` deve retornar HTTP 200 com `status=ok`, `version=0.7.0`, `phase=7`.
+GET `/health` deve retornar HTTP 200 com `status=ok`, `version=0.10.0`, `phase=10`.
 Uma base sem o schema necessário retorna 503. O console exige autenticação.
 
 ## Demonstração sem hardware
@@ -214,9 +220,10 @@ temporárias, e reverter as Fases 2–4 remove os respectivos dados.
 
 ## Estrutura e limites
 
-`sentinela/{auth,core,dashboard,organizations,sites,cameras,monitoring,events,alerts,access}` contêm os
+`sentinela/{auth,core,dashboard,organizations,sites,cameras,monitoring,events,alerts,access,verification,reports}` contêm os
 blueprints; `services/` contém auditoria mínima, persistência, cofre, gateway,
-detecção não identificadora, fila, eventos e autorização de acesso.
+detecção não identificadora, fila, eventos, autorização de acesso,
+verificação sintética, cálculos operacionais e exportações locais.
 `media/` guarda o vídeo sintético fora de static. Templates e recursos locais
 mantêm o layout responsivo. `migrations/`, `tests/`, `scripts/` e `docs/` completam
 a entrega. Não foram criados módulos vazios para funcionalidades futuras.
@@ -230,7 +237,8 @@ latência zero e não substitui um gateway de mídia preparado para produção.
 
 Veja [arquitetura](docs/architecture.md), [Fase 2](docs/phase-2.md),
 [Fases 3 e 4 / gateway](docs/media-gateway.md) e [validação](docs/validation.md).
-As Fases 5–7 estão autorizadas. A Fase 8 e seguintes aguardam nova autorização.
+As Fases 8–10 estão autorizadas; a Fase 8 é exclusivamente um protótipo sintético.
+A Fase 11 e seguintes aguardam nova autorização.
 
 ## Transmissão pública do YouTube para teste
 
@@ -296,3 +304,44 @@ Para atualizar uma instalação Windows, feche o servidor, faça backup de
 `requirements.lock.txt`, `scripts/` e `iniciar.bat`. Preserve os dados e chaves
 locais. Abra novamente **iniciar.bat** para instalar as dependências e aplicar
 as migrações aditivas. Não copie apenas `app.py`.
+
+## Fases 8–10: verificação de teste, dashboard e relatórios
+
+**A Fase 8 não habilita reconhecimento facial real.** O módulo valida o fluxo de
+verificação 1:1 com vetores artificiais, sem receber fotos ou vídeos. Não procura
+pessoas em uma galeria, não usa imagens do YouTube ou de câmeras de vigilância e
+não aciona hardware. Não foi validada precisão facial ou proteção contra fraude.
+
+1. Como administrador, abra **Verificação 1:1 (teste) → Gerenciar referências de
+   teste → Configurar política de teste**. Documente as referências da avaliação
+   e a alternativa, escolha retenção de 1–30 dias e habilite somente o teste
+   artificial. Registrar referências não comprova adequação para biometria real.
+2. Cadastre uma referência sintética cifrada para uma pessoa previamente
+   cadastrada, com registro de autorização do teste. Emita uma credencial de uso
+   único em **Pessoas Autorizadas** e mantenha a permissão de unidade/horário.
+3. Apresente o token em **Verificação 1:1 (teste)**. Após validação, escolha uma
+   amostra artificial correspondente, diferente, de baixa qualidade ou incompleta.
+   Uma aprovação simulada consome a credencial; reprovação permite usar o método
+   não biométrico. Há limite temporário de três verificações por credencial em
+   dez minutos. A referência pode ser revogada/excluída imediatamente.
+4. No **Dashboard**, filtre até 92 dias, unidade e fonte. Câmeras reais sem
+   verificação recente ficam como desconhecidas. Disponibilidade é estimada
+   apenas nos intervalos observados; ausência de dados não significa online.
+5. Em **Relatórios**, escolha tipo, período, unidade/fonte e finalidade. Gere o
+   snapshot e exporte por **CSV** ou **PDF**. O administrador pode cadastrar logo
+   PNG/JPEG. Acesso é agregado, sem nomes ou credenciais; auditoria administrativa
+   é restrita ao administrador. Revogar escopo bloqueia os snapshots afetados.
+
+Para remover referências artificiais expiradas ou invalidadas, execute diariamente:
+
+```powershell
+.\.venv\Scripts\python.exe -m flask --app app purge-verification-tests
+```
+
+Linux: `.venv/bin/python -m flask --app app purge-verification-tests`.
+O comando é um lote; configure sua execução periódica na instalação. Alterar a
+política exclui as referências anteriores e exige novo cadastro. A expiração já
+bloqueia o uso, mesmo antes da limpeza. Preserve `instance/verification-test-key`
+com as demais chaves locais, fora do Git. O modo sintético é bloqueado em produção.
+
+Veja [Fases 8–10: critérios, fórmulas e limites](docs/phases-8-10.md).
