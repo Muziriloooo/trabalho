@@ -10,7 +10,7 @@ from conftest import token_from
 def test_database_health(client):
     response = client.get("/health")
     assert response.status_code == 200
-    assert response.json == {"status": "ok", "version": "0.4.0", "phase": 4}
+    assert response.json == {"status": "ok", "version": "0.7.0", "phase": 7}
 
 
 @pytest.mark.parametrize("path", ["/", *[f"/modules/{item[3]}" for item in NAVIGATION if item[3]]])

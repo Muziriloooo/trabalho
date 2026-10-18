@@ -1,4 +1,4 @@
-# Arquitetura — Fases 1 a 4
+# Arquitetura — Fases 1 a 7
 
 Monólito modular Flask com application factory, SQLite e migrações Alembic.
 `app.py` é a entrada WSGI, `config.py` centraliza configuração por ambiente.
@@ -14,6 +14,9 @@ Monólito modular Flask com application factory, SQLite e migrações Alembic.
 | monitoring | Grade, player sintético/HLS e autorização em cada requisição de mídia |
 | services/vault | Credenciais de gateway cifradas com Fernet |
 | services/gateway | MediaMTX API v3 e HLS HTTPS, destinos fixos, limites e playlists reescritas |
+| events / services/vision / analysis | Política por câmera, análise limitada, fila SQLite e eventos com origem |
+| alerts | Ocorrências, responsáveis, histórico, transições e notificações no console |
+| access / services/access | Pessoas mínimas, pontos simulados, permissões, tokens de uso único e decisões |
 | services/audit | Registro mínimo de alterações administrativas sem payload de credenciais |
 
 ## Modelo e fronteira de cliente
@@ -60,8 +63,10 @@ HTTPS. O namespace do gateway recebe automaticamente o ID imutável da organiza�
 impedindo escolher a fonte de outro cliente no cadastro. URLs upstream e
 credenciais nunca entram no HTML ou na playlist entregue ao player.
 
-Sem origem de streaming improvisada, descoberta de equipamentos, gravação,
-biometria, controle de fechadura ou envio de vídeo a IA. HLS convencional com
+Sem descoberta de equipamentos, gravação permanente, biometria, controle de
+fechadura ou envio de vídeo a serviços externos de IA. A análise autorizada
+processa movimento e possível obstrução de amostras limitadas; amostra real
+é temporária e descartada ao concluir, inclusive em exceções normais. HLS convencional com
 fMP4/MPEG-TS é suportado; LL-HLS e chaves remotas em playlists são rejeitados.
 Hls.js é distribuído localmente para navegadores com MSE; Safari pode usar HLS
 nativo. Atraso exibido é uma estimativa no buffer, não a latência de captura real.
@@ -99,3 +104,30 @@ se conecta diretamente ao YouTube; o backend não extrai mídia, não verifica
 se está ao vivo e não o inclui no inventário/status de câmeras. Encerrar remove
 o iframe; a validação periódica de console também encerra o player se perder
 acesso. O vídeo público permanece acessível no YouTube fora da aplicação.
+
+## Operação das Fases 5–7
+
+A revisão `0e0fdb6387b6` adiciona as tabelas operacionais sem alterar os dados
+anteriores. AnalysisPolicy pertence à câmera/organização e começa desativada.
+AnalysisJob mantém a fila no banco; índice parcial impede duas tarefas ativas
+para uma câmera. O worker usa UPDATE condicional para tomar uma tarefa uma vez,
+confere autorização atual e executa um lote. Não há agendador contínuo.
+
+SecurityEvent registra unidade, câmera opcional, tipo, origem, motivo e data UTC.
+EventGate faz deduplicação por janela móvel em transação; Alert é criado na mesma
+transação para prioridades de atenção/crítica. Uma ocorrência encerrada não é
+reaberta automaticamente. AlertActivity guarda comentários escapados e autor.
+A atualização usa versão para impedir sobrescrita concorrente durante a transação.
+O sino consulta somente contagens autorizadas; não há notificações externas.
+
+AccessSubject guarda nome e referência mínima, sem fotos/documentos/biometria.
+AccessPermission valida unidade, fuso e janela semanal, inclusive virada da noite.
+AccessCredential armazena apenas SHA-256 de token aleatório de 256 bits, com
+validade de 1/5/15 minutos e consumo atômico. AccessEvent registra a decisão e o
+motivo, sem token. Credenciais revogadas, vencidas ou usadas são negadas; falha
+na validação de horário também nega acesso. Três negações no ponto em cinco
+minutos geram alerta simulado, limitado por janela de cinco minutos.
+
+Fontes permanecem explícitas: `synthetic`, `gateway`, `youtube_client` (relato
+manual) e `access_simulation`. O player do YouTube não fornece quadros ao worker.
+Consulte [operação e limites](phases-5-7.md).

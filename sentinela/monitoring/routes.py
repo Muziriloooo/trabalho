@@ -22,6 +22,9 @@ def youtube_status():
 @bp.get("")
 @console_required
 def index():
+    from ..events.forms import YouTubeObservationForm
+    youtube_form = YouTubeObservationForm()
+    youtube_form.site_id.choices = [(site.id, site.name) for site in db.session.scalars(visible_sites(active_only=True).order_by(Site.name))]
     query = visible_cameras().where(Camera.enabled.is_(True), Site.status == "active")
     site_id = request.args.get("site", type=int)
     if site_id:
@@ -32,7 +35,7 @@ def index():
         get_camera(camera_id, playable=True)
         query = query.where(Camera.id == camera_id)
     cameras = db.session.scalars(query.order_by(Camera.name).limit(9)).all()
-    return render_template("monitoring/index.html", title="Monitoramento", active_slug="monitoring", cameras=cameras,
+    return render_template("monitoring/index.html", title="Monitoramento", active_slug="monitoring", cameras=cameras, youtube_form=youtube_form,
                            sites=db.session.scalars(visible_sites(active_only=True).order_by(Site.name)).all(), site_filter=site_id, camera_filter=camera_id,
                            states={c.id: status_payload(c) for c in cameras})
 

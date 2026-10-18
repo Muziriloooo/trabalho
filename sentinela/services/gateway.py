@@ -6,7 +6,7 @@ import time
 from urllib.parse import urlsplit
 
 import requests
-from flask import current_app, url_for
+from flask import current_app, has_request_context, url_for
 
 from .vault import SecretUnavailable, credentials
 
@@ -111,7 +111,7 @@ def rewrite_manifest(data, camera_id):
     def local(asset):
         if not SAFE_ASSET.fullmatch(asset):
             raise GatewayError("unsafe_manifest")
-        return url_for("monitoring.media", camera_id=camera_id, asset=asset)
+        return url_for("monitoring.media", camera_id=camera_id, asset=asset) if has_request_context() else f"/monitoring/{camera_id}/media/{asset}"
 
     lines = []
     allowed_tags = {"#EXTM3U", "#EXT-X-VERSION", "#EXT-X-TARGETDURATION", "#EXT-X-MEDIA-SEQUENCE",

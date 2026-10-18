@@ -1,9 +1,10 @@
 # SENTINELA AI
 
-Plataforma de segurança empresarial — **Fases 1 a 4**.
+Plataforma de segurança empresarial — **Fases 1 a 7**.
 
 Monólito modular Flask com autenticação local, organizações e unidades,
-permissões por unidade, inventário de câmeras e central de monitoramento.
+permissões por unidade, inventário de câmeras, monitoramento, análise de amostras,
+central de alertas e controle de acesso simulado com credenciais de uso único.
 SQLite e vídeo sintético permitem desenvolver e demonstrar o produto sem câmera,
 serviço pago ou infraestrutura de mídia. Câmeras reais usam MediaMTX por HTTPS.
 
@@ -21,24 +22,27 @@ serviço pago ou infraestrutura de mídia. Câmeras reais usam MediaMTX por HTTP
 - Monitoramento autenticado: câmera individual, grade 1/4/9, filtro por unidade,
   pausa, retomada, reconexão limitada, tela cheia e informações de atraso de buffer.
 - Vídeo de demonstração sintético e integração HLS convencional com MediaMTX.
-- Migrações que preservam os dados da Fase 1 e testes de isolamento entre clientes.
+- Análise autorizada de movimento/possível obstrução em amostras com área e horário.
+- Central de alertas com responsáveis, histórico, justificativas e deduplicação.
+- Pessoas, pontos de acesso simulados e credenciais temporárias revogáveis de uso único.
+- Migrações que preservam cadastros anteriores e testes de isolamento entre clientes.
 
 **O dashboard inicial ainda usa dados de exemplo**, claramente identificados, e
-não calcula métricas operacionais do inventário. Eventos, alertas, acesso físico,
-biometria, relatórios e cobranças continuam nas fases futuras. O cadastro de uma
+não calcula métricas operacionais do inventário. Eventos, alertas e decisões simuladas são persistidos nos respectivos módulos.
+Biometria, relatórios e cobranças permanecem nas fases futuras. O cadastro de uma
 câmera de demonstração nunca é apresentado como conexão com equipamento real.
 
 ## Requisitos
 
 Python **3.12** com pip/venv e acesso ao PyPI para instalar dependências.
 No Windows, instalar o Python com o launcher `py` e abrir a pasta no VS Code.
-SQLite deve ser 3.35 ou superior para os testes de rollback; o Python 3.12 oficial
+SQLite deve ser 3.35 ou superior para operações atômicas e testes de rollback; o Python 3.12 oficial
 atende esse requisito. Não são necessários Node, FFmpeg, Docker, PostgreSQL, Redis,
 hardware ou API paga para rodar o modo de demonstração.
 
 Dependências diretas: Flask, Flask-SQLAlchemy, Flask-Migrate, Flask-Login,
 Flask-WTF, Flask-Limiter, python-dotenv, Waitress, cryptography, requests, tzdata
-(fusos também no Windows) e pytest. `requirements.lock.txt` fixa as versões
+(fusos também no Windows), OpenCV headless e pytest. `requirements.lock.txt` fixa as versões
 transitivas verificadas. Chart.js, Lucide e hls.js são servidos localmente,
 com suas licenças. O player opcional do YouTube se conecta a serviços externos somente após o clique.
 
@@ -100,7 +104,7 @@ testes. Pode ser repetido sem apagar o banco. `start.sh` inicia Waitress em
 loopback, na porta 5000. Reinicie os processos ao retomar uma tarefa ou após
 alterar código/templates; as migrações não são executadas ao importar a aplicação.
 
-GET `/health` deve retornar HTTP 200 com `status=ok`, `version=0.4.0`, `phase=4`.
+GET `/health` deve retornar HTTP 200 com `status=ok`, `version=0.7.0`, `phase=7`.
 Uma base sem o schema necessário retorna 503. O console exige autenticação.
 
 ## Demonstração sem hardware
@@ -121,20 +125,23 @@ Uma base sem o schema necessário retorna 503. O console exige autenticação.
    em até aproximadamente 15 segundos se o navegador estiver ativo.
 
 Bytes já recebidos pelo navegador não podem ser recuperados pelo servidor.
-A aplicação não grava transmissões, não captura pessoas e não envia vídeo a IA.
+A análise vem desativada e exige autorização explícita por câmera. Não há
+gravação permanente, identificação de pessoas ou envio de vídeo a serviços de IA.
+O processamento de amostras reais usa arquivo temporário privado, removido ao concluir.
 
 ## Papéis e organizações
 
 | Perfil | Permissões nestas fases |
 | --- | --- |
 | Administrador da plataforma | Criar/editar/desativar metadados de organizações; sem acesso a inventários ou imagens |
-| Administrador da organização | Gerir a própria organização, unidades, câmeras e equipe; visualizar suas unidades |
-| Supervisor / operador | Somente consultar e reproduzir câmeras nos escopos concedidos |
+| Administrador da organização | Gerir organização, unidades, câmeras, equipe, análise e credenciais; tratar alertas e simular acesso |
+| Supervisor / operador | Consultar câmeras/eventos, tratar alertas e simular acesso nos escopos concedidos |
 | Usuário de acesso físico | Sem acesso ao console de monitoramento |
 
 A organização vem da sessão, nunca de `organization_id` enviado por formulário.
-IDs de outro cliente ou de unidade sem escopo retornam 404. Alterações exigem
-administrador da organização e CSRF. Chaves estrangeiras compostas também
+IDs de outro cliente ou de unidade sem escopo retornam 404. Cadastros administrativos exigem administrador da organização;
+tratamento de alertas e decisões simuladas também permitem operadores no seu escopo.
+Todas as mutações exigem CSRF. Chaves estrangeiras compostas também
 impedem associar câmera, unidade, credencial ou escopo de clientes diferentes.
 Operadores antigos preservam sua conta ao migrar, mas precisam de uma concessão
 explícita para acessar as novas unidades. Administradores não podem conceder
@@ -200,14 +207,16 @@ proxy como se fosse a chave Fernet real.
 No Windows, use `.\.venv\Scripts\python.exe`. Os testes usam bases isoladas.
 Cobrem autenticação, CSRF, papéis, escopos, isolamento, CRUD, cifras, restrições
 SSRF, TLS/timeout, respostas de gateway, reescrita de HLS, autorização de segmentos,
-Range de vídeo, desativação, revogação, migrações e preservação de dados legados.
+Range de vídeo, desativação, revogação, migrações, preservação de dados legados,
+detecção sintética, deduplicação, fila, alertas, horários e consumo concorrente de token.
 Não execute downgrade no banco de trabalho: os testes de rollback usam bases
 temporárias, e reverter as Fases 2–4 remove os respectivos dados.
 
 ## Estrutura e limites
 
-`sentinela/{auth,core,dashboard,organizations,sites,cameras,monitoring}` contêm os
-blueprints; `services/` contém auditoria mínima, persistência, cofre e gateway.
+`sentinela/{auth,core,dashboard,organizations,sites,cameras,monitoring,events,alerts,access}` contêm os
+blueprints; `services/` contém auditoria mínima, persistência, cofre, gateway,
+detecção não identificadora, fila, eventos e autorização de acesso.
 `media/` guarda o vídeo sintético fora de static. Templates e recursos locais
 mantêm o layout responsivo. `migrations/`, `tests/`, `scripts/` e `docs/` completam
 a entrega. Não foram criados módulos vazios para funcionalidades futuras.
@@ -221,7 +230,7 @@ latência zero e não substitui um gateway de mídia preparado para produção.
 
 Veja [arquitetura](docs/architecture.md), [Fase 2](docs/phase-2.md),
 [Fases 3 e 4 / gateway](docs/media-gateway.md) e [validação](docs/validation.md).
-A Fase 5 e as seguintes dependem de nova autorização.
+As Fases 5–7 estão autorizadas. A Fase 8 e seguintes aguardam nova autorização.
 
 ## Transmissão pública do YouTube para teste
 
@@ -243,3 +252,47 @@ nesses casos, use o link externo e as mensagens do player oficial. Esta inclusã
 não conecta a câmera doméstica iCSee. Os testes locais verificam incorporação e
 controles com um iframe controlado; a consulta pública ao YouTube nesta nuvem
 retornou HTTP 403, sem confirmação de reprodução da transmissão real.
+
+## Fases 5–7: testar análise, alertas e acesso
+
+1. Como administrador, cadastre uma unidade e uma câmera de **Demonstração**.
+2. Em **Eventos → Configurar análise**, ative a análise, mantenha inicialmente a
+   área inteira e confirme a autorização. Em **Analisar amostra**, escolha
+   execução imediata, confirme e execute. O movimento do vídeo sintético gera
+   evento e alerta, ambos identificados como sintéticos. Repetições dentro do
+   intervalo configurado não geram novos alertas.
+3. Na **Central de Alertas**, abra **Providências**, atribua responsável e
+   reconheça o alerta. Depois coloque em análise ou resolva com justificativa.
+   O sino mostra pendências do seu escopo e atualiza a cada 30 segundos.
+4. Em **Pessoas Autorizadas**, cadastre uma pessoa e conceda permissão por unidade
+   e horário. Em **Controle de Acesso**, crie um ponto simulado dessa unidade.
+   Emita uma credencial temporária pela página de pessoas, copie o código exibido
+   uma única vez e use-o em **Simular tentativa**. A primeira tentativa válida
+   permite o acesso simulado; reapresentar o código é negado. Nome e matrícula
+   nunca autorizam a entrada. Não há acionamento de hardware.
+5. Em **Monitoramento**, teste o player do YouTube informado e registre o resultado
+   observado, escolhendo a unidade responsável. Erro relatado gera alerta;
+   reprodução confirmada e encerramento geram eventos informativos. Esses são
+   relatos manuais, sem verificação automática ou análise de imagens do YouTube.
+
+**Teste escolhido:** YouTube para reprodução e vídeo sintético para análise.
+Os detectores implementados reconhecem movimento e possível obstrução/imagem
+uniforme. Não existe detector de pessoas treinado/validado nesta entrega.
+
+Para processar amostras enfileiradas, mantenha o site aberto e execute em outro
+terminal na pasta do projeto:
+
+```powershell
+.\.venv\Scripts\python.exe -m flask --app app process-analysis --limit 10
+```
+
+Linux: `.venv/bin/python -m flask --app app process-analysis --limit 10`.
+O comando processa um lote e termina; não existe agendador contínuo nesta fase.
+Fontes reais sempre usam essa fila, com gateway configurado e autorização por
+câmera. Veja [Fases 5–7: operação e limites](docs/phases-5-7.md).
+
+Para atualizar uma instalação Windows, feche o servidor, faça backup de
+`instance/` e `.env`, atualize os arquivos do projeto incluindo `migrations/`,
+`requirements.lock.txt`, `scripts/` e `iniciar.bat`. Preserve os dados e chaves
+locais. Abra novamente **iniciar.bat** para instalar as dependências e aplicar
+as migrações aditivas. Não copie apenas `app.py`.

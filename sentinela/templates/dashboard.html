@@ -2,7 +2,7 @@
 {% from 'components/macros.html' import icon, status, metric %}
 {% block head %}<script defer src="{{ url_for('static', filename='vendor/chart.umd.js') }}"></script><script defer src="{{ url_for('static', filename='js/dashboard.js') }}"></script>{% endblock %}
 {% block content %}
-<section class="page-heading"><div><p class="eyebrow">SENTINELA COMMAND</p><h1>Visão geral da operação<span class="heading-dot">.</span></h1><p>Acompanhe os indicadores e explore a base do seu console de segurança.</p></div><div class="heading-tag">{{ icon('layers') }} Fundação · Fases 1–4</div></section>
+<section class="page-heading"><div><p class="eyebrow">SENTINELA COMMAND</p><h1>Visão geral da operação<span class="heading-dot">.</span></h1><p>Acompanhe os indicadores e explore a base do seu console de segurança.</p></div><div class="heading-tag">{{ icon('layers') }} Operações · Fases 1–7</div></section>
 <div class="demo-banner" role="note"><span class="demo-icon">{{ icon('flask-conical') }}</span><div><strong>Você está em um ambiente de demonstração</strong><p>Todos os indicadores, gráficos e eventos abaixo são dados de exemplo. Estes dados não refletem o inventário cadastrado nem a conexão de suas câmeras. Nenhum alerta real é processado.</p></div><span class="demo-label">DADOS DE EXEMPLO</span></div>
 <section class="metrics-grid" aria-label="Indicadores de exemplo">{% for item in metrics %}{{ metric(item) }}{% endfor %}</section>
 <section class="charts-grid" aria-label="Gráficos demonstrativos">

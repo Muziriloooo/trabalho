@@ -1,93 +1,73 @@
-# Validação — Fases 1 a 4
+# Validação — Fases 1 a 7
 
 Executada na nuvem Linux com Python 3.12.14, SQLite e Chromium headless.
+A versão atual é 0.7.0. Os cenários usam bancos e contas temporários; tokens e
+senhas de teste ficam na memória, sem contas padrão na instalação.
 
 | Verificação | Resultado |
 | --- | --- |
-| Dependências fixadas e `pip check` | Instaladas, sem incompatibilidades |
-| Migração `78f63a927cf9` no banco local | Aplicada |
-| `flask --app app db check` | Sem divergência entre modelos e migrações |
-| `python -m pytest -q` | **122 testes aprovados** |
-| Instalação repetida por `scripts/setup.sh` | Aprovada, preservando banco e contas |
-| Sintaxe dos scripts shell e JS de monitoramento | Aprovada |
-| Upgrade com organizações, usuário e unidade legados | Dados, senha e FKs preservados; sem concessão implícita |
-| Downgrade e novo upgrade | Aprovados em banco temporário, nunca no banco de trabalho |
-| CRUD e confirmação em navegador | Unidades, câmeras demo e equipe criados e alterados no fluxo |
-| Reprodução MP4 sintético em navegador | Quadros avançam, pausa remove a origem, retomada funciona |
-| Grade e câmera individual | Layouts, filtro por unidade e seleção individual aprovados |
-| HLS fMP4 sintético no navegador | Gateway controlado → relay autenticado → hls.js/MSE → reprodução aprovada |
-| Navegador desktop e móvel | 1440 × 1000 e 390 × 844, sem transbordamento da página |
-| Escopo e revogação no navegador | Operador vê só a unidade concedida; revogar encerra o player na validação periódica |
-| JS/CSP e requisições externas do browser | Nenhum erro inesperado; recursos/segmentos apenas same-origin ou blob |
-| Câmera física / MediaMTX remoto real | **Não executado**: nenhum equipamento/gateway/credencial configurado |
-| Windows real | **Não executado**: host Linux; script e roteiro fornecidos |
-| PostgreSQL, implantação pública, backup operacional | Fora desta validação; necessários antes de produção |
+| `bash scripts/setup.sh` completo | Aprovado; instalação, `pip check`, upgrade, db check e suíte |
+| Dependências fixadas, incluindo OpenCV headless / NumPy | Instaladas, sem incompatibilidades |
+| Migração `0e0fdb6387b6` | Aplicada; nenhuma divergência entre modelos e migrações |
+| `python -m pytest -q` | **174 testes aprovados**, nenhum ignorado ou desabilitado |
+| Reinício por `scripts/start.sh` | Waitress; `/health` HTTP 200, versão 0.7.0, fase 7; `/login` HTTP 200 |
+| Upgrade/rollback/novo upgrade em bases temporárias | Aprovados; preservação de contas, senha, unidade, câmera e histórico anteriores |
+| MP4 sintético → detector → evento → alerta | Movimento detectado; repetição suprimida por janela móvel |
+| Detector estático, ROI e quadros insuficientes | Sem movimento fora da área; imagem uniforme sinalizada; amostra curta falha explicitamente |
+| Fila e autorização atual | Tomada única, tarefa ativa única por câmera, fora de horário/estado revogado não processam |
+| Falha inesperada de processamento | Tarefa falha e gera evento/alerta, sem mensagem interna sensível |
+| HLS fMP4 sintético controlado → amostra → detector | Análise local gerou evento `gateway` e alerta; sem gateway físico |
+| Amostra real simulada e limpeza | Container válido decodificado; diretório temporário removido |
+| Playlist disfarçada de mídia | Rejeitada antes do decodificador; protocolos de decodificação limitados a arquivos locais |
+| Central de Alertas | Filtros, escopo, transições, responsáveis, justificativa e histórico persistidos |
+| YouTube: relato manual | Erro gera alerta; deduplicação e unidade autorizada conferidas |
+| Acesso simulado | Emissão, permissão/horário, revogação, expiração, negação e histórico aprovados |
+| Duas tentativas simultâneas com o mesmo token | **Uma permitida e uma negada** em banco SQLite de arquivo |
+| Ausência de token no histórico/HTML posterior | Aprovada; somente hash persistido; resposta de emissão no-store |
+| Escopos de clientes/unidades e CSRF | Novas rotas verificadas junto às proteções das fases anteriores |
+| Navegador desktop/móvel — fases 5–7 | Análise → alerta reconhecido/resolvido; cadastro/permissão/ponto/token → permitido → reutilização negada |
+| Navegador — layout e JS | 1440 × 1000 e 390 × 844; sem transbordamento da página ou erros JS |
+| Formulário YouTube no navegador | Relato manual registrado, sem carregar iframe/recurso externo nesse cenário |
+| Câmera física / MediaMTX remoto | **Não executado**: nenhum equipamento/gateway/credencial configurado |
+| Reprodução efetiva do YouTube informado | **Não confirmada**; consulta pública anterior retornou HTTP 403 nesta nuvem |
+| Windows real | **Não executado**: host Linux; `iniciar.bat` e roteiro disponíveis |
+| PostgreSQL / implantação pública / hardware de acesso | Não executados; entrega local de desenvolvimento |
 
-## Cobertura de segurança
+## Verificações anteriores mantidas na suíte
 
-- Login/logout, senha scrypt, CSRF, cookies e limites de tentativas.
-- Cadastro e edição de unidades, identificadores duplicados, fuso inválido,
-  confirmação de desativação e contagem do inventário.
-- Tentativas de acessar/alterar IDs de outro cliente ou de unidade sem escopo.
-- Roles de plataforma e acesso físico sem acesso implícito a imagens.
-- Concessão por unidade e global, supervisor, revogação e desativação de usuário.
-- Organização ou unidade inativa e câmera desativada bloqueiam mídia.
-- Credenciais cifradas fora do HTML, preservação em edição, remoção explícita,
-  chave de produção ausente e impedimento de referências entre clientes.
-- Confirmação de exclusão e remoção em cascata do histórico da câmera.
-- Fontes demo separadas de reais; status expira e falhas de configuração/TLS
-  não são apresentadas como câmera online.
-- Adaptador com resposta online/ready, fonte offline, 401/403, 404, redirect,
-  timeout, TLS inválido, JSON inválido e conteúdo acima do limite.
-- Destinos HTTPS/portas fixados, metadados/loopback recusados, paths arbitrários
-  e playlists externas/traversal/chaves remotas rejeitados.
-- Namespace de gateway por ID imutável da organização. Escolher outra referência
-  não altera o namespace do cliente.
-- Playlist e segmentos autorizados por requisição, sem query de destino livre,
-  sem credenciais ou origem de gateway no conteúdo devolvido.
-- Range do MP4 e Cache-Control no-store. Novas requisições são bloqueadas depois
-  da revogação; bytes previamente baixados não podem ser recuperados pelo servidor.
+Autenticação, senhas scrypt, CSRF, cookies, limites de tentativas, inventário,
+duplicidades, fuso IANA, autorização em cada requisição, papéis e escopos,
+revogação, organizações/unidades/câmeras inativas, cofre Fernet, FKs entre clientes,
+SSRF, TLS, timeouts, redirects recusados, respostas limitadas, reescrita de HLS,
+URLs/credenciais fora do conteúdo do player, Range e Cache-Control continuam
+cobertos. A suíte atual inclui esses cenários.
 
-A execução de navegador usou banco e usuários temporários; as senhas aleatórias
-ficaram somente na memória do processo. O teste HLS forneceu respostas controladas
-do gateway com fragmentos sintéticos gerados por FFmpeg: valida o fluxo do
-player e do adaptador, **não comprova acesso a hardware ou rede do cliente**.
-Os processos temporários foram encerrados. O banco de desenvolvimento não recebeu
-contas, imagens ou cadastros de teste.
+Nas Fases 2–4 o Chromium também validou CRUD de unidades/câmeras/equipe, concessão
+e revogação de escopo, avanço real do MP4, pausa/retomada, layouts e HLS fMP4
+sintético pelo relay e hls.js/MSE. Esses testes de navegador anteriores não
+comprovam conexão com hardware; os processos e bancos temporários foram removidos.
 
-Uma falha de renderização no filtro de câmera individual foi encontrada no
-navegador, corrigida e coberta por teste de regressão. A última suíte concluiu
-122 testes; não houve testes obrigatórios ignorados ou desabilitados.
+O cenário anterior do YouTube usou iframe controlado para verificar carregamento
+após clique, ID `CKpA7U_wAbw`, referrer, ausência de cookies da aplicação no request
+externo, encerramento/reabertura, sessão e layout. A suíte continua verificando
+CSP, autenticação, ID/link e ausência de iframe antes do clique. Não houve
+extração, download ou análise dos quadros da transmissão do YouTube.
 
-## Arquivos da entrega
+## Alcance das evidências
 
-- Modelos, migração aditiva, config, CLI e permissões atualizados.
-- Blueprints `organizations`, `sites`, `cameras`, `monitoring` e equipe.
-- Serviços de cifra, gateway, persistência e auditoria mínima.
-- Templates de formulários, organizações, unidades, equipe, câmeras e players.
-- CSS responsivo, JS de monitoramento e hls.js local com licenças.
-- Vídeo sintético fora de static e script opcional de geração.
-- Testes de inventário/gateway e expansão das verificações de migração e rotas.
-- README, `.env.example`, arquitetura, Fase 2 e instruções de gateway atualizados.
+O teste HLS de análise gerou fragmentos sintéticos com FFmpeg, forneceu-os como
+respostas controladas do gateway, executou o decodificador OpenCV e confirmou
+no banco o evento/alerta. É evidência do caminho de processamento, sem prova de
+acesso à rede/câmera do cliente. O detector implementado cobre movimento e
+possível obstrução/imagem uniforme; não inclui modelo de presença de pessoas.
 
-Arquivos ignorados `.venv/` e `instance/` são preparação local, nunca enviados ao
-Git. Instruções reutilizáveis são salvas no rascunho do ambiente; esse salvamento
-não publica o snapshot nem comprova restauração numa tarefa nova. O código pode
-ser enviado ao GitHub independentemente da publicação do ambiente da plataforma.
+O navegador percorreu as telas reais em servidor temporário, incluindo emissão
+e consumo do token. Também conferiu que o campo fica vazio após a decisão e
+que o token não reaparece no HTML. Não houve erro JavaScript nem requisição
+externa no cenário das fases 5–7. A configuração da transmissão real é opcional;
+o teste acordado separa reprodução YouTube de análise sintética.
 
-## Player público do YouTube
-
-Após a inclusão do vídeo `CKpA7U_wAbw`, a suíte completa passou em **127 testes**.
-A página de Monitoramento inclui o exemplo público sem exigir cadastro de câmera.
-Os testes verificam autenticação/papéis e Cache-Control, ausência de iframe ou
-conexão externa antes do clique, ID/link exatos e CSP que permite somente
-www.youtube-nocookie.com como frame externo nessa página. Demais páginas mantêm
-frame-src 'none'.
-
-Chromium, com conteúdo externo controlado: carregamento após clique, URL oficial
-correta, referrer de origem necessário ao YouTube, nenhum cookie da aplicação no
-request externo, encerramento/reabertura, layout móvel e remoção após logout.
-Não foram alterados schema ou dependências. A reprodução do vídeo real não foi
-confirmada: a consulta oEmbed ao YouTube retornou HTTP 403 nesta nuvem. Erros de
-incorporação, transmissão encerrada e restrições do canal ficam a cargo do player
-oficial, com link para abrir no YouTube. Não houve extração/download do vídeo.
+Arquivos locais `.venv/`, `instance/` e `.env` permanecem fora do Git. A revisão
+de configuração do ambiente salva instalação/instruções, sem executar ou publicar
+um snapshot. Publicação do ambiente e envio de código ao GitHub são operações
+distintas. Uma tarefa nova ainda precisa validar a restauração e iniciar processos.

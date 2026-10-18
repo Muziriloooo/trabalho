@@ -2,13 +2,13 @@ from datetime import timedelta, timezone
 
 from flask import Blueprint, current_app, abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from ..core.forms import CameraForm, ConfirmationForm, DeleteCameraForm
 from ..core.permissions import console_required, get_camera, organization_admin_required, visible_cameras, visible_sites
 from ..extensions import db, limiter
-from ..models import Camera, CameraHealthEvent, Site, utcnow
+from ..models import Camera, CameraHealthEvent, SecurityEvent, Site, utcnow
 from ..services import gateway, vault
 from ..services.audit import audit
 from ..services.persistence import commit
@@ -147,6 +147,7 @@ def status(camera_id):
 @limiter.limit("10 per minute", key_func=lambda: current_user.get_id())
 def check(camera_id):
     camera = get_camera(camera_id, playable=True)
+    previous_state = camera.connection_status
     now = utcnow()
     if camera.last_checked_at and (now - camera.last_checked_at.replace(tzinfo=timezone.utc)).total_seconds() < 10:
         abort(429)
@@ -164,6 +165,12 @@ def check(camera_id):
     if state == "online":
         camera.last_seen_at = now
     db.session.add(CameraHealthEvent(organization_id=camera.organization_id, camera_id=camera.id, event_type=state, reason_code=reason))
+    if camera.protocol != "demo":
+        from ..services.events import emit_event
+        kind = "camera_offline" if state == "offline" else "camera_reconnected" if state == "online" and previous_state == "offline" else "integration_failure" if state == "unknown" else None
+        if kind:
+            emit_event(organization_id=camera.organization_id, site_id=camera.site_id, camera_id=camera.id, event_type=kind,
+                       source="gateway", reason_code=reason, cooldown=60)
     audit("camera.checked", camera)
     if not commit():
         abort(409)
@@ -199,9 +206,11 @@ def delete(camera_id):
         else:
             vault.clear_credentials(camera)
             audit("camera.deleted", camera)
+            # Preserva eventos/alertas existentes ao remover o equipamento.
+            db.session.execute(update(SecurityEvent).where(SecurityEvent.camera_id == camera.id, SecurityEvent.organization_id == current_user.organization_id).values(camera_id=None))
             db.session.delete(camera)
             if commit():
-                flash("Câmera, credencial protegida e histórico removidos.", "success")
+                flash("Câmera, credencial e histórico de disponibilidade removidos; eventos e alertas preservados.", "success")
                 return redirect(url_for("cameras.index"))
     return render_template("management/form.html", title="Remover câmera", form=form,
                            help_text=f"Esta operação é irreversível. Identificador: {camera.identifier}", active_slug="cameras"), 422 if form.is_submitted() else 200

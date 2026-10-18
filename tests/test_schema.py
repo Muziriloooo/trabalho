@@ -91,3 +91,32 @@ def test_upgrade_preserves_phase1_rows_and_scopes_are_not_granted_implicitly(tmp
         assert db.session.execute(text("SELECT name FROM organization WHERE id=2")).scalar() == "Legacy 2"
         db.session.remove()
         db.engine.dispose()
+
+
+def test_phase7_upgrade_preserves_camera_and_existing_history(tmp_path, monkeypatch):
+    from sentinela.models import Camera, CameraHealthEvent, Organization
+    monkeypatch.setenv("SENTINELA_ENV", "development")
+    app = create_app({"TESTING": True, "SQLALCHEMY_DATABASE_URI": f"sqlite:///{tmp_path / 'phase4.db'}", "RATELIMIT_ENABLED": False})
+    directory = str(Path(__file__).resolve().parents[1] / "migrations")
+    with app.app_context():
+        upgrade(directory=directory, revision="78f63a927cf9")
+        org = Organization(name="Existing organization")
+        db.session.add(org); db.session.flush()
+        user = User(email="existing@example.test", organization_id=org.id, role="organization_admin", password_hash=TEST_HASH)
+        site = Site(name="Existing site", organization_id=org.id)
+        db.session.add_all([user, site]); db.session.flush()
+        camera = Camera(name="Existing camera", identifier="existing", organization_id=org.id, site_id=site.id, created_by=user.id)
+        db.session.add(camera); db.session.flush()
+        history = CameraHealthEvent(organization_id=org.id, camera_id=camera.id, event_type="demo", reason_code="synthetic_video")
+        db.session.add(history); db.session.commit()
+        camera_id, history_id = camera.id, history.id
+        upgrade(directory=directory)
+        assert db.session.get(Camera, camera_id).name == "Existing camera"
+        assert db.session.get(CameraHealthEvent, history_id).event_type == "demo"
+        assert {"analysis_job", "alert", "access_credential"} <= set(inspect(db.engine).get_table_names())
+        downgrade(directory=directory, revision="78f63a927cf9")
+        assert db.session.get(Camera, camera_id).name == "Existing camera"
+        assert "alert" not in inspect(db.engine).get_table_names()
+        upgrade(directory=directory)
+        assert app.test_client().get("/health").status_code == 200
+        db.session.remove(); db.engine.dispose()

@@ -1,4 +1,5 @@
 import click
+from datetime import timedelta
 from flask.cli import with_appcontext
 from sqlalchemy import select
 
@@ -55,3 +56,21 @@ def create_account(platform, identifier):
     db.session.add(user)
     db.session.commit()
     click.echo("Conta criada sem alterar usuários existentes.")
+
+
+@click.command("process-analysis")
+@click.option("--limit", type=click.IntRange(1, 50), default=10, show_default=True)
+@click.option("--recover-stale", is_flag=True, help="Após parar workers antigos, recupera tarefas interrompidas há mais de 5 minutos.")
+@with_appcontext
+def process_analysis(limit, recover_stale):
+    """Processa tarefas pendentes uma vez, em processo separado do servidor web."""
+    from sqlalchemy import update
+    from .models import AnalysisJob, utcnow
+    from .services.analysis import run_job
+    if recover_stale:
+        db.session.execute(update(AnalysisJob).where(AnalysisJob.status == "running", AnalysisJob.started_at < utcnow() - timedelta(minutes=5))
+                           .values(status="pending", reason_code="recovered_after_interruption"))
+        db.session.commit()
+    ids = list(db.session.scalars(select(AnalysisJob.id).where(AnalysisJob.status == "pending").order_by(AnalysisJob.id).limit(limit)))
+    count = sum(int(run_job(job_id)) for job_id in ids)
+    click.echo(f"Tarefas processadas: {count}. Consulte o resultado em Eventos.")
