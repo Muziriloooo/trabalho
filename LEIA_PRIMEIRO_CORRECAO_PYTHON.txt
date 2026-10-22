@@ -1,0 +1,21 @@
+CORRECAO DO PAINEL — GOOGLE PLANILHAS / DEPENDENCIAS PYTHON
+
+O erro "Execute configurar_google_windows.bat para instalar as dependencias"
+ocorria quando o processo do servidor nao encontrava os modulos Google.
+
+INSTALACAO (NA PASTA QUE VOCE JA USA):
+1. Feche a janela preta do painel antigo. Se aparecer "porta 8765 em uso", feche
+   a janela antiga com Ctrl+C e abra novamente; nao tente duas copias ao mesmo tempo.
+2. Extraia este ZIP e COPIE o conteudo para a MESMA pasta onde esta app.py.
+   Confirme a substituicao dos arquivos existentes.
+3. Nao apague nem troque segredos\google_service_account.json nem config_google.json.
+4. Execute TESTAR_CONEXAO_GOOGLE.bat. Na primeira vez ele cria
+   .ambiente_dashboard e instala google-auth e requests automaticamente.
+5. Se aparecer CONEXAO OK, execute iniciar_windows.bat.
+6. Entre em http://localhost:8765 e pressione Ctrl+F5.
+
+Se a instalacao nao funcionar, envie apenas a mensagem exibida na janela,
+SEM anexar credenciais privadas, chaves JSON, tokens, senhas ou dados da planilha.
+A pasta .ambiente_dashboard nao precisa ser copiada nem enviada: sera criada localmente.
+
+Versao corrigida preserva as cinco paginas ja existentes. Nenhuma pagina nova.

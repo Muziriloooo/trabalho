@@ -1,0 +1,8 @@
+DIAGNOSTICO DO GOOGLE PLANILHAS - LEIA PRIMEIRO
+1. Extraia o arquivo "testar_google.py" desta pasta.
+2. Coloque-o na PASTA PRINCIPAL do seu dashboard, junto de app.py e TESTAR_CONEXAO_GOOGLE.bat.
+3. Substitua o arquivo testar_google.py antigo (NAO altere a pasta segredos).
+4. Execute TESTAR_CONEXAO_GOOGLE.bat normalmente.
+5. Leia a linha "Mensagem da API" e siga "PROXIMA ACAO".
+6. Se precisar de ajuda, pode copiar o status e a mensagem de erro, mas NAO envie o JSON.
+Observacao: mostra o e-mail da conta de servico e projeto apenas no seu computador.

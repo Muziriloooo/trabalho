@@ -1,0 +1,19 @@
+CORRECAO DA ABA - GOOGLE PLANILHAS
+
+O arquivo Excel original tinha uma guia chamada IMPLANTAÇÕES 2026.
+O Google Sheets recusou o intervalo na guia configurada como 2026.
+
+Esta versao:
+- configura IMPLANTAÇÕES 2026 por padrao;
+- verifica o nome real das guias na API;
+- se o nome tiver mudado, usa a guia correspondente ao gid=0 do link;
+- nao altera o Google Planilhas nem torna nenhum dado publico.
+
+Para instalar:
+1. Feche o site se estiver rodando.
+2. Substitua app.py e config_google.json na pasta atual do painel.
+3. MANTENHA segredos\google_service_account.json (nao compartilhe).
+4. Execute TESTAR_CONEXAO_GOOGLE.bat.
+5. Quando aparecer CONEXAO OK, execute iniciar_windows.bat.
+
+Se persistir erro de colunas/CLIENTE, verifique o nome da guia com os dados.

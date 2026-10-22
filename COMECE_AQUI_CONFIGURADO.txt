@@ -1,0 +1,45 @@
+PAINEL DE IMPLANTAÇÕES 2026 — VINCULADO À SUA PLANILHA GOOGLE
+=================================================================
+STATUS: Link e aba já configurados; falta apenas AUTORIZAR a leitura privada.
+
+PLANILHA:
+  Link: https://docs.google.com/spreadsheets/d/1PAyvKpAbjvELQxbQaJAtienjDs80mv0yvzOKJqbTQkY/edit?gid=0#gid=0
+  Aba: 2026
+  Intervalo de leitura: '2026'!A:M
+  Permissão: somente leitura
+  Fonte selecionada: Google Planilhas (config_google.json)
+  Sem necessidade de publicar a planilha ou alterar a sua visibilidade.
+
+PARA AUTORIZAR O ACESSO:
+1. Peça aprovação à TI, caso a planilha contenha informações corporativas.
+2. No Google Cloud, crie ou utilize um projeto autorizado e ative a Google Sheets API.
+3. Em IAM e administrador > Contas de serviço, crie uma conta de serviço dedicada.
+4. Se permitido pela TI, crie uma chave JSON para essa conta e baixe-a.
+5. Copie o e-mail da conta de serviço (termina em iam.gserviceaccount.com).
+6. Na planilha do Google, clique Compartilhar > adicione esse e-mail como LEITOR.
+   Deixe 'Acesso geral: Restrito'. Não use 'Qualquer pessoa com link'.
+7. Coloque a chave JSON somente em: segredos/google_service_account.json
+   Nunca envie a chave no chat e nunca a inclua em uploads ou pastas públicas.
+
+PARA INICIAR (WINDOWS):
+1. Descompacte o ZIP em uma pasta própria.
+2. Execute configurar_google_windows.bat uma vez (instala bibliotecas Python).
+3. Execute TESTAR_CONEXAO_GOOGLE.bat para conferir acesso e formato dos dados.
+4. Execute iniciar_windows.bat e abra http://localhost:8765 no PC.
+5. O dashboard busca novos valores a cada ~30 segundos enquanto estiver aberto.
+
+SE FALHAR:
+- Credenciais não encontradas: confirme o nome e a pasta do arquivo JSON.
+- Erro 403: confira o compartilhamento com o e-mail da conta de serviço, a API habilitada
+  e a política de TI para compartilhamento com contas de serviço.
+- Erro 404: confira o link e o nome EXATO da aba: 2026.
+- Coluna CLIENTE ausente: a aba 2026 não tem as colunas na ordem esperada A:M.
+- Prévia HTML: é um arquivo estático; para sincronizar abra o servidor Python.
+
+SEGURANÇA:
+- O servidor escuta somente em 127.0.0.1 (acesso local) e não publica os dados online.
+- A conta de serviço usa o escopo Google Sheets API somente de leitura.
+- A chave fica fora de static, inacessível pelas páginas do site.
+- Não transfira a pasta segredos ao compartilhar o site.
+- Para disponibilizar a outros colaboradores remotamente, seria preciso implantar
+  hospedagem privada e autenticação, separadamente.

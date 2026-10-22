@@ -1,0 +1,17 @@
+DASHBOARD IMPLANTAÇÕES 2026 - GOOGLE PLANILHAS PRIVADO
+
+1) Na pasta em que está este arquivo, coloque o JSON autorizado pela TI em:
+   segredos\google_service_account.json
+2) Compartilhe sua planilha com o e-mail da CONTA DE SERVIÇO como Leitor.
+3) Execute configurar_google_windows.bat (uma única vez).
+4) Execute TESTAR_CONEXAO_GOOGLE.bat.
+5) Se aparecer CONEXAO OK, execute iniciar_windows.bat.
+
+LINK CONFIGURADO: https://docs.google.com/spreadsheets/d/1PAyvKpAbjvELQxbQaJAtienjDs80mv0yvzOKJqbTQkY/edit?gid=0#gid=0
+ABA: 2026
+
+IMPORTANTE: não execute os arquivos de dentro do ZIP. Primeiro clique em
+'Extrair tudo'. Os .bat ficam na mesma pasta que o app.py.
+Caso o Windows esconda extensões, os nomes podem aparecer sem '.bat'.
+
+Não envie a chave JSON pelo ChatGPT.

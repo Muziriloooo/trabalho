@@ -1,0 +1,61 @@
+IMPLANTAÇÕES 2026 PRO — CONECTAR GOOGLE PLANILHAS PRIVADO
+======================================================
+A conexão é SOMENTE DE LEITURA. Nenhuma área ou gráfico novo foi criado.
+O servidor roda neste computador (127.0.0.1:8765). NÃO abra acesso externo sem autenticação.
+
+PASSO 1 — COPIAR O LINK
+No Google Planilhas, abra a planilha e copie o endereço do navegador, por exemplo:
+https://docs.google.com/spreadsheets/d/SEU_ID/edit#gid=0
+Pode enviar esse link no chat, mas NÃO compartilhe conteúdo sensível nem altere o acesso para público.
+
+PASSO 2 — HABILITAR API E CRIAR IDENTIDADE TECNICA
+No projeto corporativo autorizado, acesse https://console.cloud.google.com/
+Ative a API Google Sheets no projeto.
+Em IAM e administrador > Contas de serviço, crie uma conta de serviço dedicada (ex. painel-implantacoes).
+Em Chaves, se as políticas da empresa permitirem, crie chave JSON; guarde no computador de forma segura.
+Este arquivo é uma credencial secreta: NÃO envie no chat, e-mail, WhatsApp ou repositórios.
+Empresas podem bloquear criação de chaves; peça auxílio à TI se a opção não estiver disponível.
+
+PASSO 3 — LIBERAR APENAS LEITURA DA PLANILHA
+Na página da conta de serviço copie o e-mail técnico, que normalmente termina em
+...iam.gserviceaccount.com.
+Na planilha: Compartilhar > digite esse e-mail > papel LEITOR.
+Mantenha Acesso geral: RESTRITO. Não use 'Qualquer pessoa com o link'.
+Confirme com TI se o domínio permite compartilhar com identidades técnicas.
+
+PASSO 4 — CONFIGURAR ARQUIVOS NO PC
+1. Extraia este ZIP. Dentro da pasta Painel_Implantacoes_2026_PRO abra config_google.json.
+2. Altere 'fonte' de 'excel' para 'google'.
+3. Em 'planilha_url' cole o link completo do Google Planilhas.
+4. Em 'aba' escreva exatamente o título da guia que contém os dados (ex. 'Base');
+   deixe vazio para usar a primeira guia.
+5. Mantenha 'credenciais': 'segredos/google_service_account.json'.
+6. Coloque o JSON de credenciais baixado e renomeado na pasta segredos.
+7. Rode configurar_google_windows.bat UMA VEZ para instalar google-auth e requests.
+8. Rode iniciar_windows.bat e abra http://localhost:8765
+
+PASSO 5 — TESTAR
+- O indicador superior deverá mostrar 'GOOGLE SINCRONIZADO'.
+- Edite na planilha do Google uma linha de teste sem dados sensíveis.
+- Clique Atualizar ou aguarde até 30 s (além da latência própria da API).
+- Os números devem atualizar sem importar Excel. Apague a linha de teste ao terminar.
+- Se aparecer erro 403, cheque a partilha com a conta de serviço e a API habilitada.
+- Se aparecer 'CLIENTE coluna B', a guia selecionada não corresponde ao formato esperado.
+
+FORMATO ESPERADO (primeira linha e colunas A:M, igual ao Excel original)
+A MES E ANO | B CLIENTE | C FILIAL | D SEGMENTO | E TARGET | F TOTAL GASTO
+G CUSTO EVITADO | H DATA DA NOTIFICACAO | I DATA IMPLANTACAO
+J DIAS UTEIS | K STATUS | L QTD. EFETIVO | M VISITA TECNICA
+
+IMPORTANTE
+- A API Google Sheets retorna os valores calculados da planilha, não as fórmulas em si.
+- Se as informações forem confidenciais, obtenha aprovação de TI antes de ativar a integração.
+- Se houver falha de rede/API, o painel mostra um erro; NÃO usa números antigos silenciosamente.
+- A prévia HTML permanece uma fotografia estática do Excel, mesmo neste ZIP.
+- Para voltar ao Excel local, troque 'fonte': 'excel' em config_google.json.
+- O arquivo da chave privada jamais deve ser colocado dentro da pasta static nem enviado à hospedagem pública.
+- Para acesso externo/multiusuário, é necessário sistema de login e hospedagem segura em separado.
+
+FONTES OFICIAIS
+Google Sheets API: https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets.values/get
+Chaves conta serviço: https://docs.cloud.google.com/iam/docs/keys-create-delete

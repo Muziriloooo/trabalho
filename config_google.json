@@ -1,0 +1,6 @@
+{
+  "fonte": "google",
+  "planilha_url": "https://docs.google.com/spreadsheets/d/1PAyvKpAbjvELQxbQaJAtienjDs80mv0yvzOKJqbTQkY/edit?gid=0#gid=0",
+  "aba": "IMPLANTAÇÕES 2026",
+  "credenciais": "segredos/google_service_account.json"
+}
