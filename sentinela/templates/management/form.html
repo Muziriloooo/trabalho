@@ -1,6 +1,0 @@
-{% extends 'base.html' %}
-{% from 'components/forms.html' import fields %}
-{% block content %}
-<section class="page-heading"><div><p class="eyebrow">GESTÃO DO AMBIENTE</p><h1>{{ title }}</h1></div></section>
-<section class="panel form-panel"><p class="form-help">{{ help_text|default('Os dados pertencem à organização da sua sessão.') }}</p><form method="post" autocomplete="off">{{ fields(form) }}</form></section>
-{% endblock %}

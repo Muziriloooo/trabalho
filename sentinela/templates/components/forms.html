@@ -1,8 +1,0 @@
-{% macro fields(form) %}
-{{ form.hidden_tag() }}
-{% for field in form if field.type not in ['CSRFTokenField', 'HiddenField'] %}
-  {% if field.type == 'SubmitField' %}<div class="form-actions">{{ field(class_='button primary') }}</div>
-  {% elif field.type == 'BooleanField' %}<div class="form-field checkbox-field">{{ field() }}{{ field.label }}{% for error in field.errors %}<span class="field-error" role="alert">{{ error }}</span>{% endfor %}</div>
-  {% else %}<div class="form-field">{{ field.label }}{{ field(aria_invalid='true' if field.errors else 'false', aria_describedby=field.id ~ '-error') }}<span id="{{ field.id }}-error" class="field-error">{% for error in field.errors %}{{ error }} {% endfor %}</span></div>{% endif %}
-{% endfor %}
-{% endmacro %}

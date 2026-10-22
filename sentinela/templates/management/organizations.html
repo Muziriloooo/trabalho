@@ -1,6 +1,0 @@
-{% extends 'base.html' %}
-{% from 'components/forms.html' import fields %}
-{% block content %}
-<section class="page-heading"><div><p class="eyebrow">ADMINISTRAÇÃO DA PLATAFORMA</p><h1>Organizações</h1><p>Acesso a metadados administrativos. Câmeras e imagens permanecem isoladas.</p></div></section>
-<div class="management-grid"><section class="panel"><div class="panel-heading"><h2>Organizações cadastradas</h2></div><div class="table-scroll"><table class="data-table"><thead><tr><th>Nome</th><th>Identificador</th><th>Responsável</th><th>Status</th><th>Ação</th></tr></thead><tbody>{% for org in organizations %}<tr><td>{{ org.name }}</td><td>{{ org.identifier }}</td><td>{{ org.responsible }}</td><td>{{ 'Ativa' if org.status == 'active' else 'Inativa' }}</td><td><a class="text-link" href="{{ url_for('organizations.edit', organization_id=org.id) }}">Editar</a></td></tr>{% else %}<tr><td colspan="5">Nenhuma organização cadastrada.</td></tr>{% endfor %}</tbody></table></div><p class="panel-note">Até 100 resultados. Para provisionar o administrador de uma organização, use o comando create-account documentado.</p></section><section class="panel form-panel"><h2>Cadastrar organização</h2><form method="post">{{ fields(form) }}</form></section></div>
-{% endblock %}

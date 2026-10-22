@@ -1,5 +1,0 @@
-{% extends 'base.html' %}
-{% block content %}
-<section class="page-heading"><div><p class="eyebrow">CREDENCIAL TEMPORÁRIA · USO ÚNICO</p><h1>Credencial emitida</h1><p>Exibida somente nesta resposta. Não será recuperável pelo sistema.</p></div></section>
-<section class="panel form-panel"><p class="form-help">Copie o valor e entregue por um canal autorizado. Válido até {{ credential.expires_at.strftime('%d/%m/%Y %H:%M:%S') }} UTC. Uma utilização permitida consome a credencial.</p><label for="issued-token">Token temporário</label><input id="issued-token" class="issued-token" value="{{ token }}" readonly autocomplete="off" spellcheck="false"><p class="form-help">Use em Controle de Acesso para simular a decisão. Esta credencial não aciona hardware e não é um QR estático reutilizável.</p><a class="button primary" href="{{ url_for('access.index') }}">Simular acesso</a><a class="button secondary" href="{{ url_for('access.people') }}">Voltar aos cadastros</a></section>
-{% endblock %}
