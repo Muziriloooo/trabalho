@@ -1,0 +1,9 @@
+# Credenciais e dados locais
+segredos/
+dados/*.xlsx
+dados/*.xls
+
+# Ambiente e caches Python
+.ambiente_dashboard/
+__pycache__/
+*.py[cod]
