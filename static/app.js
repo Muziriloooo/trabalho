@@ -38,7 +38,8 @@ prepareIcons();
 
 const fmtInt = n => Math.round(n||0).toLocaleString('pt-BR');
 const fmtDecimal = (n,d=1) => Number(n||0).toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
-const fmtMoney = n => (Number(n||0)).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0});
+const fmtMoney = n => n == null ? '—' : Number(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
+const dateBR = v => v ? v.split('-').reverse().join('/') : '—';
 const fmtExactMoney = n => (Number(n||0)).toLocaleString('pt-BR',{style:'currency',currency:'BRL',minimumFractionDigits:2,maximumFractionDigits:2});
 const compact = n => {n=Number(n)||0; const a=Math.abs(n); return a>=1e6?fmtDecimal(n/1e6,2)+' mi':a>=1e3?fmtDecimal(n/1e3,1)+' mil':fmtInt(n)};
 const moneyShort = n => 'R$ '+compact(n);
@@ -59,11 +60,11 @@ const pageInfo = {
  financeiro:['Financeiro','Inteligência <span>Financeira.</span>','Acompanhe investimentos, execução orçamentária e custos evitados.'],
  segmentos:['Segmentos & operação','Visão <span>Operacional.</span>','Explore recursos mobilizados, visitas técnicas e prazos de implantação.'],
  mapa:['Mapa & clientes','Mapa de <span>Implantações.</span>','Explore as implantações por filial e conheça o efetivo alocado a cada cliente.'],
- dados:['Base de dados','Dados & <span>Registros.</span>','Explore cada implantação registrada na planilha Excel vinculada.']
+ dados:['Base de dados','Dados & <span>Registros.</span>','Explore cada implantação registrada na fonte conectada.']
 };
 
 function toast(msg){const el=$('toast');el.textContent=msg;el.hidden=false;clearTimeout(toast.timer);toast.timer=setTimeout(()=>el.hidden=true,4200);}
-function showError(msg){$('loading').hidden=true;document.querySelectorAll('.page').forEach(p=>p.hidden=true);$('error-panel').hidden=false;$('error-message').textContent=msg;}
+function showError(msg){$('loading').hidden=true;if(!lastStamp)document.querySelectorAll('.page').forEach(p=>p.hidden=true);$('error-panel').hidden=false;$('error-message').textContent=(lastStamp?'Última leitura mantida; os dados podem estar desatualizados. ':'')+msg;$('source-status').textContent='ATUALIZAÇÃO INDISPONÍVEL';}
 function updateSource(){
  $('last-update').textContent=window.__PREVIEW_DATA__?'Dados embutidos':meta.lidoEm?new Date(meta.lidoEm).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'—';
  document.querySelector('.source-name').textContent=meta.arquivo||'Planilha Excel';
@@ -80,21 +81,23 @@ function updateSource(){
  const months=allMonths.filter(m=>m.startsWith('2026-'));
  $('report-period').textContent=months.length?`${MONTHS[+months[0].slice(5)-1].toUpperCase()} — ${MONTHS[+months[months.length-1].slice(5)-1].toUpperCase()} 2026`:'IMPLANTAÇÕES 2026';
 }
+let fetching=false;
 async function fetchData({silent=false}={}){
+ if(fetching)return;fetching=true;
  if(!silent){$('loading').hidden=false;$('error-panel').hidden=true;}
  try{
   let result;
   if(window.__PREVIEW_DATA__){result=window.__PREVIEW_DATA__;}
   else {const res=await fetch('/api/data',{cache:'no-store'});result=await res.json();if(!res.ok)throw new Error(result.error||'Erro do servidor.');}
   const stamp=String(result.meta?.versaoArquivo||result.meta?.atualizadoEm)+'|'+result.meta?.registros;
-  if(silent&&stamp===lastStamp)return;
+  if(silent&&stamp===lastStamp){meta=result.meta||{};updateSource();$('error-panel').hidden=true;$('loading').hidden=true;return;}
   lastStamp=stamp;
   data=result.records||[];
   meta=result.meta||{};
   allMonths=uniq(data.map(r=>r.mes).filter(Boolean)).sort();
   fillSelects();updateSource();$('loading').hidden=true;$('error-panel').hidden=true;switchPage(activePage);render();
   if(silent)toast((meta.fonte==='google'?'Google Planilhas':'Excel')+' atualizado: indicadores recalculados.');
- }catch(e){if(!silent)showError(e.message);else toast('Não foi possível atualizar: '+e.message);}
+ }catch(e){showError(e.message);}finally{fetching=false;}
 }
 function fillSelects(){
  const choices=[['filter-month',allMonths,monthLabel,'month'],['filter-filial',uniq(data.map(r=>r.filial)).sort((a,b)=>a.localeCompare(b,'pt-BR')),x=>x,'filial'],['filter-segmento',uniq(data.map(r=>r.segmento)).sort(),x=>x,'segmento']];
@@ -124,7 +127,11 @@ function render(){
  currentRows=filtered();renderFilterChips();$('overview-records').textContent=fmtInt(currentRows.length)+' REGISTROS';
  renderKpis(currentRows);renderMonthly(currentRows);renderDonuts(currentRows);renderFinance(currentRows);renderRanks(currentRows);renderSegments(currentRows);renderTable(currentRows);renderGeo(currentRows);
 }
-const monthlyRows = rows => allMonths.map(m=>({mes:m,label:MONTHS[+m.slice(5,7)-1],count:rows.filter(x=>x.mes===m).length,efetivo:sum(rows.filter(x=>x.mes===m),'efetivo'),target:sum(rows.filter(x=>x.mes===m),'target'),gasto:sum(rows.filter(x=>x.mes===m),'gasto'),economia:sum(rows.filter(x=>x.mes===m),'economia'),lead:meanLead(rows.filter(x=>x.mes===m))}));
+const monthlyRows = rows => {
+ const grouped=new Map(allMonths.map(m=>[m,{mes:m,label:monthLabel(m),count:0,efetivo:0,target:0,gasto:0,economia:0,lead:null,leadSum:0,leadCount:0}]));
+ for(const r of rows){const m=grouped.get(r.mes);if(!m)continue;m.count++;for(const k of ['efetivo','target','gasto','economia'])m[k]+=Number(r[k])||0;if(typeof r.diasUteis==='number'&&Number.isFinite(r.diasUteis)&&r.diasUteis>=0){m.leadSum+=r.diasUteis;m.leadCount++;}}
+ return [...grouped.values()].map(m=>({...m,lead:m.leadCount?m.leadSum/m.leadCount:null}));
+};
 function spark(values,color){
  if(!values?.length)return '';
  let max=Math.max(...values,1),min=Math.min(...values,0),w=94,h=33;
@@ -132,17 +139,13 @@ function spark(values,color){
  return `<svg class="sparkline" viewBox="0 0 94 33" aria-hidden="true"><polyline points="${pts}" stroke="${color}" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/></svg>`;
 }
 function renderKpis(rows){
- const mm=monthlyRows(rows),clients=uniq(rows.map(r=>r.cliente.trim().toLocaleUpperCase('pt-BR'))).length;
- const lead=meanLead(rows);
- const cards=[
-  ['Implantações',fmtInt(rows.length),'Registros cadastrados','clipboard','#2b5aa8','#eaf1fb',mm.map(x=>x.count)],
-  ['Clientes únicos',fmtInt(clients),'Nomes distintos na base','building','#4b74ad','#eef4fb',mm.map(x=>x.count)],
-  ['Efetivo alocado',fmtInt(sum(rows,'efetivo')),'Pessoas nas implantações','users','#e7a81c','#fff6df',mm.map(x=>x.efetivo)],
-  ['Target previsto',moneyShort(sum(rows,'target')),'Orçamento total informado','target','#4b75c2','#edf2ff',mm.map(x=>x.target)],
-  ['Total gasto',moneyShort(sum(rows,'gasto')),'Valor utilizado','wallet','#e99e2f','#fff5e7',mm.map(x=>x.gasto)],
-  ['Custo evitado',moneyShort(sum(rows,'economia')),'Economia declarada na base','savings','#27aa89','#e5f7ef',mm.map(x=>x.economia)],
- ];
- $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic,color,tint,series])=>`<article class="kpi-card" style="--accent:${color};--tint:${tint}"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value" title="${val}">${val}</div><div class="kpi-bottom"><span class="kpi-description">${desc}</span>${spark(series,color)}</div></article>`).join('');
+ const validTotal=key=>rows.some(r=>typeof r[key]==='number')?sum(rows,key):null;
+ const cards=[['Implantações realizadas',fmtInt(rows.length),'Registros com cliente identificado','clipboard'],['Efetivo mobilizado',validTotal('efetivo')===null?'—':fmtInt(validTotal('efetivo')),'Soma do efetivo informado','users'],['Gasto realizado',fmtMoney(validTotal('gasto')),'Valores executados na base','wallet'],['Custo evitado',fmtMoney(validTotal('economia')),'Economia declarada na base','savings']];
+ $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic])=>`<article class="kpi-card"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc}${rows.some(r=>['target','gasto','economia','efetivo'].some(k=>r[k]==null))?' · Base com campos ausentes':''}</div></article>`).join('');
+ const lead=meanLead(rows),clients=uniq(rows.map(r=>r.cliente.trim().toLocaleUpperCase('pt-BR'))).length;
+ let comparison='Selecione um mês para comparar com o anterior.';
+ if(filters.month){const d=new Date(filters.month+'-01T12:00:00Z');d.setUTCMonth(d.getUTCMonth()-1);const previous=d.toISOString().slice(0,7);const base=data.filter(r=>r.mes===previous&&(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR'))));comparison=base.length?`${rows.length-base.length>=0?'+':''}${fmtInt(rows.length-base.length)} registros vs. ${monthLabel(previous)}`:'Sem base comparável no mês anterior.';}
+ $('executive-context').innerHTML=`<div><span>LEAD TIME</span><strong>${lead===null?'—':fmtDecimal(lead,1)+' dias úteis'}</strong><small>Apenas prazos válidos, não negativos</small></div><div><span>CLIENTES DISTINTOS</span><strong>${fmtInt(clients)}</strong><small>Contagem por nome normalizado</small></div><div><span>COMPARAÇÃO MENSAL</span><strong class="comparison">${escapeHtml(comparison)}</strong><small>Mesmos filtros de filial, segmento, visita e cliente</small></div>`;
 }
 const axisNum = n => Math.abs(n)>=1e6?fmtDecimal(n/1e6,1)+' mi':Math.abs(n)>=1e3?fmtInt(n/1e3)+' mil':fmtInt(n);
 function yScaffold(max,top,height,xMin,xMax,ticks=4,formatter=axisNum){let html='';for(let i=0;i<=ticks;i++){const val=max*(ticks-i)/ticks,y=top+height*(i/ticks);html+=`<line class="chart-grid" x1="${xMin}" x2="${xMax}" y1="${y}" y2="${y}"/><text class="chart-axis" x="${xMin-10}" y="${y+4}" text-anchor="end">${escapeHtml(formatter(val))}</text>`;}return html;}
@@ -163,11 +166,11 @@ function barSvg(months,key,options={}){
 }
 function financeSvg(months,large=false){
  const has=months.some(m=>m.target||m.gasto||m.economia);if(!has)return emptyChart();
- const W=1000,H=large?327:278,L=78,R=18,T=22,B=51,P=H-T-B;const maxV=Math.max(...months.flatMap(m=>[m.target,m.gasto,m.economia]),1),max=Math.ceil(maxV/100000)*100000,space=(W-L-R)/months.length;
- const ser=[['target','#2b5aa8','Target'],['gasto','#f0af28','Gasto'],['economia','#30ae91','Economia']];let svg=`<svg viewBox="0 0 ${W} ${H}" aria-label="Comparativo financeiro por mês" role="img">${yScaffold(max,T,P,L,W-R,4,axisNum)}`;
+ const W=1000,H=large?327:278,L=90,R=18,T=22,B=51,P=H-T-B;const vals=months.flatMap(m=>[m.target,m.gasto,m.economia]),max=Math.max(...vals,1)*1.12,min=Math.min(...vals,0)*1.12,space=(W-L-R)/months.length;const y=v=>T+(max-v)/(max-min)*P;let grid='';for(let i=0;i<=4;i++){const v=min+(max-min)*i/4;grid+=`<line class="chart-grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text class="chart-axis" x="${L-10}" y="${y(v)+4}" text-anchor="end">${axisNum(v)}</text>`;}
+ const ser=[['target','#2b5aa8','Target'],['gasto','#f0af28','Gasto'],['economia','#30ae91','Economia']];let svg=`<svg viewBox="0 0 ${W} ${H}" aria-label="Comparativo financeiro por mês" role="img">${grid}`;
  months.forEach((m,i)=>{const xc=L+space*(i+.5),bw=Math.min(19,(space-10)/4),gap=3;
- ser.forEach(([k,color,label],j)=>{const v=Number(m[k])||0,barH=Math.max(0,v/max*P);const x=xc+(j-1)*(bw+gap)-bw/2;
- svg+=`<rect class="chart-hover" tabindex="0" role="button" x="${x}" y="${T+P-barH}" height="${barH}" width="${bw}" rx="2.5" fill="${color}" data-tip="${safeAttr(`${monthLabel(m.mes)}\n${label}: ${fmtExactMoney(v)}`)}" data-month="${m.mes}"/>`;});
+ ser.forEach(([k,color,label],j)=>{const v=Number(m[k])||0,barH=Math.abs(y(v)-y(0));const x=xc+(j-1)*(bw+gap)-bw/2;
+ svg+=`<rect class="chart-hover" tabindex="0" role="button" x="${x}" y="${Math.min(y(v),y(0))}" height="${barH}" width="${bw}" rx="2.5" fill="${color}" data-tip="${safeAttr(`${monthLabel(m.mes)}\n${label}: ${fmtExactMoney(v)}`)}" data-month="${m.mes}"/>`;});
  svg+=`<text class="chart-axis" x="${xc}" y="${T+P+24}" text-anchor="middle">${m.label}</text>`;});return svg+'</svg>';
 }
 function donut(elId,legendId,entries,total,kind){
@@ -184,11 +187,11 @@ function renderFinance(rows){
  const mm=monthlyRows(rows),target=sum(rows,'target'),gasto=sum(rows,'gasto'),economia=sum(rows,'economia');
  $('finance-chart').innerHTML=financeSvg(mm);$('finance-chart-large').innerHTML=financeSvg(mm,true);
  const details=[['Target previsto',target,'#2b5aa8','Total previsto conforme a planilha'],['Total utilizado',gasto,'#f0af28','Valor de gasto registrado'],['Custo evitado',economia,'#30ae91','Economia registrada na planilha']];
- $('financial-kpis').innerHTML=details.map(([label,v,c,desc])=>`<div class="finance-kpi"><div class="title"><i style="background:${c}"></i>${label}</div><div class="big">${fmtMoney(v)}</div><div class="foot">${desc}</div></div>`).join('');
- const branches=groupBy(rows,'filial','target').slice(0,8),max=Math.max(...branches.map(x=>x.value),1);
- $('financial-branches').innerHTML=branches.map(e=>`<div class="financial-branch-row"><div class="financial-branch-name" title="${safeAttr(e.name)}">${escapeHtml(e.name)}</div><div class="financial-branch-bar"><div style="width:${Math.max(0,e.value/max*100).toFixed(1)}%"></div></div><div class="financial-branch-amount">${moneyShort(e.value)}</div></div>`).join('')||emptyChart();
+ $('financial-kpis').innerHTML=details.map(([label,v,c,desc])=>`<div class="finance-kpi"><div class="title"><i style="background:${c}"></i>${label}</div><div class="big">${rows.some(r=>r[{ 'Target previsto':'target','Total utilizado':'gasto','Custo evitado':'economia'}[label]]!=null)?fmtMoney(v):'—'}</div><div class="foot">${desc}</div></div>`).join('');
+ const branches=groupBy(rows,'filial','target'),max=Math.max(...branches.map(x=>x.value),1);
+ $('financial-branches').innerHTML=branches.map(e=>`<div class="financial-branch-row"><div class="financial-branch-name" title="${safeAttr(e.name)}">${escapeHtml(e.name)}</div><div class="financial-branch-bar"><div style="width:${Math.max(0,e.value/max*100).toFixed(1)}%"></div></div><div class="financial-branch-amount">${fmtMoney(e.value)}<small>Gasto ${fmtMoney(sum(rows.filter(r=>r.filial===e.name),'gasto'))}</small></div></div>`).join('')||emptyChart();
  const rate=target?gasto/target*100:0,savedRate=target?economia/target*100:0,rest=Math.max(0,100-rate-savedRate),norm=Math.max(100,rate+savedRate);
- $('finance-split').innerHTML=`<div class="composition-value">${fmtDecimal(rate,1)}%</div><div class="composition-desc">Do target foi utilizado</div><div class="composition-track"><div class="spent" style="width:${Math.max(0,rate/norm*100)}%"></div><div class="saved" style="width:${Math.max(0,savedRate/norm*100)}%"></div><div class="other" style="width:${Math.max(0,rest/norm*100)}%"></div></div><div class="composition-legend"><span><i class="key-dot" style="background:#eab232"></i> Gastos <b>${fmtDecimal(rate,1)}%</b></span><span><i class="key-dot" style="background:#30ae91"></i> Economizado <b>${fmtDecimal(savedRate,1)}%</b></span></div><p style="font-size:10px;color:#a0aec0;margin-top:16px">Participação calculada sobre o target; os valores declarados podem não fechar exatamente devido a ajustes na planilha.</p>`;
+ $('finance-split').innerHTML=`<div class="composition-value">${target>0?fmtDecimal(rate,1)+'%':'—'}</div><div class="composition-desc">Do target foi utilizado</div><div class="composition-track"><div class="spent" style="width:${Math.max(0,rate/norm*100)}%"></div><div class="saved" style="width:${Math.max(0,savedRate/norm*100)}%"></div><div class="other" style="width:${Math.max(0,rest/norm*100)}%"></div></div><div class="composition-legend"><span><i class="key-dot" style="background:#eab232"></i> Gastos <b>${target>0?fmtDecimal(rate,1)+'%':'—'}</b></span><span><i class="key-dot" style="background:#30ae91"></i> Economizado <b>${target>0?fmtDecimal(savedRate,1)+'%':'—'}</b></span></div><p style="font-size:10px;color:#a0aec0;margin-top:16px">Participação calculada sobre o target; os valores declarados podem não fechar exatamente devido a ajustes na planilha.</p>`;
 }
 function renderRanks(rows){
  const branches=groupBy(rows,'filial').slice(0,8),max=branches[0]?.value||1;
@@ -213,10 +216,10 @@ function tableRows(rows){
 }
 function renderTable(rows){
  const issues=meta.issues||{},warnings=[issues.semMes&&`${issues.semMes} registros sem mês`,issues.semFilial&&`${issues.semFilial} sem filial`,issues.semSegmento&&`${issues.semSegmento} sem segmento`,issues.efetivoInvalido&&`${issues.efetivoInvalido} efetivo inválido`,issues.prazoNegativo&&`${issues.prazoNegativo} prazo negativo`].filter(Boolean);
- $('quality-note').innerHTML=`${icon('info')}<div><strong>Qualidade dos dados:</strong> ${fmtInt(meta.registros||data.length)} registros com cliente; ${fmtInt(meta.linhasDescartadas||0)} linhas sem cliente desconsideradas. ${warnings.length?`Revisar na planilha: ${escapeHtml(warnings.join('; '))}.`:'Nenhuma inconsistência principal detectada.'} A normalização de filiais ocorre somente no site.</div>`;
+ $('quality-note').innerHTML=`${icon('info')}<div><strong>Qualidade dos dados:</strong> ${fmtInt(meta.registros||data.length)} registros com cliente; ${fmtInt(meta.linhasDescartadas||0)} linhas sem cliente desconsideradas. ${warnings.length?`Revisar na planilha: ${escapeHtml(warnings.join('; '))}.`:'Consulte os campos marcados com —; não há imputação de valores.'} Campos numéricos ausentes ou inválidos aparecem como — e não compõem as somas; valores negativos de prazo ficam fora da média. A normalização de filiais ocorre somente no site.</div>`;
  const sorted=tableRows(rows),pages=Math.max(1,Math.ceil(sorted.length/TABLE_PAGE_SIZE));tablePage=Math.max(1,Math.min(tablePage,pages));let visible=sorted.slice((tablePage-1)*TABLE_PAGE_SIZE,tablePage*TABLE_PAGE_SIZE);
  $('table-records-count').textContent=`(${fmtInt(sorted.length)})`;
- $('records-body').innerHTML=visible.map(r=>`<tr><td title="${safeAttr(r.cliente)}">${escapeHtml(r.cliente)}</td><td>${escapeHtml(r.filial)}</td><td><span class="cell-pill">${escapeHtml(r.segmento)}</span></td><td>${escapeHtml(monthLabel(r.mes))}</td><td>${fmtMoney(r.target)}</td><td>${fmtMoney(r.gasto)}</td><td style="color:${r.economia<0?'#c75b4b':'#259b7a'}">${fmtMoney(r.economia)}</td><td><strong>${fmtInt(r.efetivo)}</strong></td><td>${r.diasUteis===null?'—':fmtDecimal(r.diasUteis,Number.isInteger(r.diasUteis)?0:1)}</td><td><span class="cell-pill ${r.visita==='SIM'?'visita-yes':r.visita==='NÃO'?'visita-no':'visita-null'}">${escapeHtml(r.visita)}</span></td></tr>`).join('')||`<tr><td colspan="10" style="text-align:center;padding:40px;color:#95a5b7">Nenhum registro encontrado.</td></tr>`;
+ $('records-body').innerHTML=visible.map(r=>`<tr><td title="${safeAttr(r.cliente)}">${escapeHtml(r.cliente)}</td><td>${escapeHtml(r.filial)}</td><td><span class="cell-pill">${escapeHtml(r.segmento)}</span></td><td>${escapeHtml(monthLabel(r.mes))}</td><td>${fmtMoney(r.target)}</td><td>${fmtMoney(r.gasto)}</td><td style="color:${r.economia<0?'#c75b4b':'#259b7a'}">${fmtMoney(r.economia)}</td><td><strong>${r.efetivo==null?'—':fmtInt(r.efetivo)}</strong></td><td>${r.diasUteis===null?'—':fmtDecimal(r.diasUteis,Number.isInteger(r.diasUteis)?0:1)}</td><td><span class="cell-pill ${r.visita==='SIM'?'visita-yes':r.visita==='NÃO'?'visita-no':'visita-null'}">${escapeHtml(r.visita)}</span></td><td>${dateBR(r.notificacao)}</td><td>${dateBR(r.implantacao)}</td><td>${escapeHtml(r.status)}</td></tr>`).join('')||`<tr><td colspan="13" style="text-align:center;padding:40px;color:#95a5b7">Nenhum registro encontrado.</td></tr>`;
  $('table-page-info').textContent=sorted.length?`Exibindo ${(tablePage-1)*TABLE_PAGE_SIZE+1}–${Math.min(tablePage*TABLE_PAGE_SIZE,sorted.length)} de ${fmtInt(sorted.length)} registros`:'Nenhum registro';
  $('table-page-number').textContent=`${tablePage} / ${pages}`;$('table-prev').disabled=tablePage<=1;$('table-next').disabled=tablePage>=pages;
 }
@@ -227,12 +230,13 @@ function exportCSV(){const cols=[['mes','MÊS'],['cliente','CLIENTE'],['filial',
 // Interações
 for(const [id,key] of [['filter-month','month'],['filter-filial','filial'],['filter-segmento','segmento'],['filter-visita','visita']]) $(id).addEventListener('change',e=>{filters[key]=e.target.value;tablePage=1;render();});
 $('filter-client').addEventListener('input',e=>{filters.client=e.target.value.trim();tablePage=1;geoPage=1;render();});
-$('clear-filters').addEventListener('click',()=>{Object.keys(filters).forEach(k=>filters[k]='');['filter-month','filter-filial','filter-segmento','filter-visita','filter-client'].forEach(id=>$(id).value='');tableSearch='';$('table-search').value='';tablePage=1;render();});
+$('clear-filters').addEventListener('click',()=>{Object.keys(filters).forEach(k=>filters[k]='');['filter-month','filter-filial','filter-segmento','filter-visita','filter-client'].forEach(id=>$(id).value='');tableSearch='';geoSearch='';geoFocus='';geoPage=1;$('geo-search').value='';$('table-search').value='';tablePage=1;render();});
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>{switchPage(b.dataset.page);window.scrollTo({top:0,behavior:'smooth'});}));
 document.querySelectorAll('.seg-toggle button').forEach(b=>b.addEventListener('click',()=>{metric=b.dataset.metric;document.querySelectorAll('.seg-toggle button').forEach(c=>c.classList.toggle('active',c===b));renderMonthly(currentRows);}));
 $('print-button').addEventListener('click',()=>window.print());
-$('presentation-button').addEventListener('click',()=>{document.body.classList.toggle('presenting');const on=document.body.classList.contains('presenting');$('presentation-button').innerHTML=icon(on?'x-circle':'maximize')+(on?' Sair da apresentação':' Apresentar');if(activePage==='mapa')setTimeout(geoDrawMap,160);toast(on?'Modo de apresentação ativado — Esc para sair.':'Modo de apresentação encerrado.');});
+$('presentation-button').addEventListener('click',()=>{document.body.classList.toggle('presenting');const on=document.body.classList.contains('presenting');$('presentation-button').innerHTML=icon(on?'x-circle':'maximize')+(on?' Sair da apresentação':' Apresentar');if(on){document.documentElement.requestFullscreen?.().catch(()=>{});}else if(document.fullscreenElement){document.exitFullscreen?.();}if(activePage==='mapa')setTimeout(geoDrawMap,160);toast(on?'Modo de apresentação ativado — Esc para sair.':'Modo de apresentação encerrado.');});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&document.body.classList.contains('presenting'))$('presentation-button').click();const tag=(e.target?.tagName||'').toLowerCase();if((e.key==='f'||e.key==='F')&&!['input','textarea','select'].includes(tag)&&!e.ctrlKey&&!e.metaKey){e.preventDefault();$('filter-client').focus();}});
+document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.classList.contains('presenting'))$('presentation-button').click();});
 $('menu-toggle').addEventListener('click',()=>$('sidebar').classList.toggle('open'));
 $('refresh-button').addEventListener('click',async()=>{await fetchData();});
 $('retry-button').addEventListener('click',()=>fetchData());
@@ -241,7 +245,7 @@ $('upload-button').addEventListener('click',()=>{if(window.__PREVIEW_DATA__)toas
 $('file-input').addEventListener('change',async e=>{
  const f=e.target.files?.[0];e.target.value='';if(!f)return;
  if(!f.name.toLowerCase().endsWith('.xlsx'))return toast('Selecione um arquivo Excel .xlsx.');
- if(!confirm('Importar '+f.name+'? Isso substituirá a planilha Excel vinculada ao site. Faça um backup se necessário.'))return;
+ if(!confirm('Importar '+f.name+'? Isso substituirá a fonte conectada ao site. Faça um backup se necessário.'))return;
  try{
   $('upload-button').disabled=true;$('upload-button').textContent='Importando...';
   const r=await fetch('/api/upload',{method:'PUT',headers:{'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'},body:f});const j=await r.json();if(!r.ok)throw new Error(j.error||'Não foi possível importar.');
@@ -392,11 +396,12 @@ function geoRenderFocus(rows){const box=$('geo-region-focus'),gs=geoGroups(rows)
 }
 function geoRenderMonth(rows){const base=data.filter(r=>(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR')))&&(!geoSearch||[r.cliente,r.filial,r.segmento].join(' ').toLocaleUpperCase('pt-BR').includes(geoSearch.toLocaleUpperCase('pt-BR'))));const g=groupBy(base,'mes'),byMonth=new Map(g.map(x=>[x.name,x.value]));const max=Math.max(1,...byMonth.values());
  $('geo-month-bars').innerHTML=allMonths.map(m=>{const val=byMonth.get(m)||0;return `<button class="geo-month ${filters.month===m?'selected':''}" data-geo-month="${safeAttr(m)}" title="Filtrar por ${monthLabel(m)}"><span class="geo-month-title">${MONTHS[+m.slice(5,7)-1]}</span><span class="geo-month-track"><i style="width:${val/max*100}%"></i></span><strong>${fmtInt(val)}</strong></button>`;}).join('');}
-function geoRenderTable(rows){const sorted=[...rows].sort((a,b)=>b.efetivo-a.efetivo||a.cliente.localeCompare(b.cliente,'pt-BR'));
+let geoSort='efetivo',geoDir=-1;
+function geoRenderTable(rows){const sorted=[...rows].sort((a,b)=>{const av=a[geoSort],bv=b[geoSort];return (typeof av==='number'||typeof bv==='number'?(av??0)-(bv??0):String(av??'').localeCompare(String(bv??''),'pt-BR',{numeric:true}))*geoDir;});
  const pages=Math.max(1,Math.ceil(sorted.length/GEO_PAGE_SIZE));geoPage=Math.min(Math.max(geoPage,1),pages);
  const visible=sorted.slice((geoPage-1)*GEO_PAGE_SIZE,geoPage*GEO_PAGE_SIZE);
  $('geo-table-count').textContent=`(${fmtInt(sorted.length)})`;
- $('geo-table-body').innerHTML=visible.map(r=>`<tr><td title="${safeAttr(r.cliente)}">${escapeHtml(r.cliente)}</td><td>${escapeHtml(r.filial)}</td><td><span class="cell-pill">${escapeHtml(r.segmento)}</span></td><td>${escapeHtml(monthLabel(r.mes))}</td><td><strong>${fmtInt(r.efetivo)}</strong></td><td>${escapeHtml(r.visita)}</td><td>${GEO_LOCS[r.filial]?`<button class="geo-lookup" data-geo-base="${safeAttr(r.filial)}">Localizar ↗</button>`:'—'}</td></tr>`).join('')||'<tr><td colspan="7" class="geo-empty">Nenhum cliente encontrado.</td></tr>';
+ $('geo-table-body').innerHTML=visible.map(r=>`<tr><td title="${safeAttr(r.cliente)}">${escapeHtml(r.cliente)}</td><td>${escapeHtml(r.filial)}</td><td><span class="cell-pill">${escapeHtml(r.segmento)}</span></td><td>${escapeHtml(monthLabel(r.mes))}</td><td><strong>${r.efetivo==null?'—':fmtInt(r.efetivo)}</strong></td><td>${escapeHtml(r.visita)}</td><td>${GEO_LOCS[r.filial]?`<button class="geo-lookup" data-geo-base="${safeAttr(r.filial)}">Localizar ↗</button>`:'—'}</td></tr>`).join('')||'<tr><td colspan="7" class="geo-empty">Nenhum cliente encontrado.</td></tr>';
  $('geo-table-info').textContent=sorted.length?`Mostrando ${(geoPage-1)*GEO_PAGE_SIZE+1}–${Math.min(geoPage*GEO_PAGE_SIZE,sorted.length)} de ${fmtInt(sorted.length)} registros`:'Nenhum registro encontrado';
  $('geo-table-page').textContent=`${geoPage} / ${pages}`;$('geo-prev').disabled=geoPage<=1;$('geo-next').disabled=geoPage>=pages;
 }
@@ -431,6 +436,8 @@ document.addEventListener('click',e=>{const cl=e.target.closest('[data-geo-clust
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(()=>{if(!$('page-mapa').hidden)geoDrawMap();}).observe($('geo-viewport'));}
 
 
+document.querySelectorAll('[data-geo-sort]').forEach(th=>{const sort=()=>{geoDir=geoSort===th.dataset.geoSort?-geoDir:1;geoSort=th.dataset.geoSort;geoPage=1;geoRenderTable(geoRows);};th.addEventListener('click',sort);th.addEventListener('keydown',e=>{if(e.key==='Enter')sort();});});
+document.querySelectorAll('#records-table th[data-sort]').forEach(th=>{th.tabIndex=0;th.addEventListener('keydown',e=>{if(e.key==='Enter')th.click();});});
 fetchData();
 if(!window.__PREVIEW_DATA__)setInterval(()=>fetchData({silent:true}),30000);
 })();

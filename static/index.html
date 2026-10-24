@@ -3,16 +3,16 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0f1d38">
-  <title>Implantações 2026 | Painel Gerencial Premium</title>
+  <meta name="theme-color" content="#12345C">
+  <title>Implantações 2026 | Grupo Souza Lima</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
 <div class="app-shell">
   <aside class="sidebar" id="sidebar">
     <div class="brand brand-original">
-      <img class="sidebar-brand-full" src="/logo_implantacoes_original.png" alt="Implantações — Painel Gerencial 2026" width="245" height="78" loading="eager">
-      <img class="sidebar-brand-symbol" src="/logo_simbolo_original.png" alt="" aria-hidden="true" width="52" height="52" loading="eager">
+      <img class="sidebar-brand-full" src="/logo-souza-lima.svg" alt="Grupo Souza Lima" width="210" height="37">
+
     </div>
     <div class="sidebar-label">NAVEGAÇÃO</div>
     <nav class="main-nav" aria-label="Navegação principal">
@@ -36,12 +36,9 @@
 
     <main class="main-content">
       <section class="hero">
-        <div class="hero-brand hero-brand-original">
-          <img class="hero-brand-image" src="/logo_implantacoes_original.png" alt="Implantações — Painel Gerencial 2026" width="245" height="78" loading="eager" decoding="sync">
-        </div>
-        <div class="hero-divider" aria-hidden="true"></div>
+
         <div class="hero-titles"><div class="eyebrow"><span class="eyebrow-line"></span>CONTROLE DE IMPLANTAÇÕES & RESULTADOS · 2026</div><h1 id="page-title">Painel de <span>Implantações.</span></h1><p id="page-description">Visão consolidada dos resultados, recursos e desempenho das implantações.</p></div>
-        <div class="hero-right"><div class="date-chip"><span data-icon="calendar"></span><span id="report-period">JAN — OUT 2026</span></div><div class="updated-text">Última leitura: <strong id="last-update">—</strong></div></div>
+        <div class="hero-right"><div class="date-chip"><span data-icon="calendar"></span><span id="report-period">PERÍODO DA BASE</span></div><div class="updated-text">Última leitura: <strong id="last-update">—</strong></div></div>
       </section>
 
       <section class="filters-panel" aria-label="Filtros do painel">
@@ -61,15 +58,15 @@
       <div id="error-panel" class="error-panel" hidden><span data-icon="alert-circle"></span><div><strong>Não foi possível carregar a planilha.</strong><p id="error-message"></p></div><button class="button button-outline" id="retry-button">Tentar novamente</button></div>
 
       <section id="page-overview" class="page" hidden>
-        <div class="section-intro"><div><h2>Resumo executivo</h2><p>Indicadores de desempenho atualizados com o Excel.</p></div><span class="mini-label" id="overview-records">—</span></div>
+        <div class="section-intro"><div><h2>Resumo executivo</h2><p>Resultados consolidados da fonte conectada.</p></div><span class="mini-label" id="overview-records">—</span></div>
         <div class="kpi-grid" id="kpi-grid"></div>
-        <div class="dashboard-grid chart-section">
+        <div class="executive-context" id="executive-context"></div><div class="dashboard-grid chart-section">
           <article class="panel panel-wide"><div class="panel-head"><div><span class="panel-kicker">EVOLUÇÃO</span><h3>Ritmo de implantações</h3><p>Desempenho mensal ao longo do ano</p></div><div class="seg-toggle" role="group" aria-label="Métrica do gráfico"><button class="active" data-metric="count">Implantações</button><button data-metric="efetivo">Efetivo</button></div></div><div class="chart-box" id="monthly-chart"></div><div class="chart-caption">Clique em uma coluna para filtrar pelo mês correspondente.</div></article>
-          <article class="panel"><div class="panel-head"><div><span class="panel-kicker">DISTRIBUIÇÃO</span><h3>Participação por segmento</h3><p>Registros classificados</p></div><span class="panel-icon" data-icon="pie"></span></div><div id="segment-donut" class="donut-wrapper"></div><div id="segment-legend" class="donut-legend"></div></article>
+
           <article class="panel panel-wide"><div class="panel-head"><div><span class="panel-kicker">RESULTADOS FINANCEIROS</span><h3>Target × realizado × economia</h3><p>Comparativo dos valores por mês</p></div><span class="panel-tag">BRL • R$</span></div><div class="chart-key"><span><i class="key-dot" style="background:#2b5aa8"></i>Target</span><span><i class="key-dot" style="background:#f0af28"></i>Gasto</span><span><i class="key-dot" style="background:#30ae91"></i>Economia</span></div><div class="chart-box" id="finance-chart"></div></article>
-          <article class="panel"><div class="panel-head"><div><span class="panel-kicker">DESTAQUES</span><h3>Top filiais</h3><p>Mais implantações registradas</p></div><span class="panel-icon" data-icon="bar-chart"></span></div><div id="filial-rank" class="ranking-list"></div><div class="chart-caption">Selecione uma filial para explorar os resultados.</div></article>
+
         </div>
-        <div class="method-note"><span data-icon="info"></span><span>O painel ignora linhas vazias do Excel e agrupa grafias equivalentes de filiais. <button class="link-button" data-page="dados">Ver qualidade dos dados →</button></span></div>
+        <details class="overview-details"><summary>Análises complementares · segmentos e filiais</summary><div class="dashboard-grid"><article class="panel overview-secondary"><div class="panel-head"><div><span class="panel-kicker">DISTRIBUIÇÃO</span><h3>Participação por segmento</h3><p>Registros classificados</p></div><span class="panel-icon" data-icon="pie"></span></div><div id="segment-donut" class="donut-wrapper"></div><div id="segment-legend" class="donut-legend"></div></article><article class="panel overview-secondary"><div class="panel-head"><div><span class="panel-kicker">DESTAQUES</span><h3>Top filiais</h3><p>Mais implantações registradas</p></div><span class="panel-icon" data-icon="bar-chart"></span></div><div id="filial-rank" class="ranking-list"></div><div class="chart-caption">Selecione uma filial para explorar os resultados.</div></article></div></details><div class="method-note"><span data-icon="info"></span><span>O painel ignora linhas vazias do Excel e agrupa grafias equivalentes de filiais. <button class="link-button" data-page="dados">Ver qualidade dos dados →</button></span></div>
       </section>
 
       <section id="page-financeiro" class="page" hidden>
@@ -91,7 +88,7 @@
             <div class="panel-head geo-map-heading"><div><span class="panel-kicker">IMPLANTAÇÕES NO TERRITÓRIO</span><h3>Mapa de atuação</h3><p>Explore as regiões: clique em uma bolha, use o zoom ou arraste para navegar.</p></div><button class="button button-outline geo-maximize" id="geo-expand" title="Ampliar mapa"><span data-icon="maximize"></span> Ampliar</button></div>
             <div class="geo-viewport" id="geo-viewport" tabindex="0" role="application" aria-label="Mapa interativo de filiais; arraste para mover e use os botões para ampliar ou reduzir">
               <div class="geo-map-bg" id="geo-map-bg"></div>
-              
+
               <svg id="geo-fallback" class="geo-fallback" aria-hidden="true"></svg>
               <div class="geo-markers" id="geo-markers"></div>
               <div class="geo-controls"><button id="geo-zoom-in" aria-label="Aproximar mapa" title="Aproximar">+</button><button id="geo-zoom-out" aria-label="Afastar mapa" title="Afastar">−</button><button id="geo-reset" aria-label="Centralizar no Brasil" title="Centralizar no Brasil">⌖</button></div>
@@ -105,14 +102,14 @@
             <article class="panel geo-focus-panel"><div class="panel-head"><div><span class="panel-kicker">REGIÃO SELECIONADA</span><h3>Detalhes da filial</h3></div></div><div id="geo-region-focus"></div></article>
           </aside>
         </div>
-        <article class="panel geo-data-panel"><div class="data-bar"><div><span class="panel-kicker">CLIENTE × QUANTIDADE DE EFETIVO</span><h3>Clientes e colaboradores <span id="geo-table-count"></span></h3><p>Lista vinculada ao mapa e aos filtros do painel</p></div><div class="table-search"><span data-icon="search"></span><input id="geo-search" placeholder="Pesquisar nome do cliente…" autocomplete="off" aria-label="Pesquisar cliente no mapa"></div></div><div class="table-scroll"><table class="geo-records-table"><thead><tr><th>CLIENTE</th><th>FILIAL / BASE</th><th>SEGMENTO</th><th>MÊS</th><th>EFETIVO</th><th>VISITA</th><th>VER NO MAPA</th></tr></thead><tbody id="geo-table-body"></tbody></table></div><div class="table-footer"><span id="geo-table-info"></span><div class="pager"><button class="icon-button" id="geo-prev" title="Página anterior"><span data-icon="chevron-left"></span></button><span id="geo-table-page"></span><button class="icon-button" id="geo-next" title="Próxima página"><span data-icon="chevron-right"></span></button></div></div></article>
+        <article class="panel geo-data-panel"><div class="data-bar"><div><span class="panel-kicker">CLIENTE × QUANTIDADE DE EFETIVO</span><h3>Clientes e colaboradores <span id="geo-table-count"></span></h3><p>Lista vinculada ao mapa e aos filtros do painel</p></div><div class="table-search"><span data-icon="search"></span><input id="geo-search" placeholder="Pesquisar nome do cliente…" autocomplete="off" aria-label="Pesquisar cliente no mapa"></div></div><div class="table-scroll"><table class="geo-records-table"><thead><tr><th data-geo-sort="cliente" tabindex="0">CLIENTE ↕</th><th data-geo-sort="filial" tabindex="0">FILIAL / BASE ↕</th><th data-geo-sort="segmento" tabindex="0">SEGMENTO ↕</th><th data-geo-sort="mes" tabindex="0">MÊS ↕</th><th data-geo-sort="efetivo" tabindex="0">EFETIVO ↕</th><th data-geo-sort="visita" tabindex="0">VISITA ↕</th><th>VER NO MAPA</th></tr></thead><tbody id="geo-table-body"></tbody></table></div><div class="table-footer"><span id="geo-table-info"></span><div class="pager"><button class="icon-button" id="geo-prev" title="Página anterior"><span data-icon="chevron-left"></span></button><span id="geo-table-page"></span><button class="icon-button" id="geo-next" title="Próxima página"><span data-icon="chevron-right"></span></button></div></div></article>
         <div class="method-note"><span data-icon="info"></span><span><strong>Precisão geográfica:</strong> o Excel contém FILIAL, mas não endereço ou latitude/longitude. Portanto, os marcadores usam cidades de referência para cada filial/estado. Filiais não informadas são contabilizadas nos indicadores, mas não aparecem como ponto no mapa.</span></div>
       </section>
 
       <section id="page-dados" class="page" hidden>
         <div class="section-intro"><div><h2>Explorar a base de dados</h2><p>Consulte, filtre, ordene e exporte os registros originais.</p></div><button class="button button-primary" id="export-csv"><span data-icon="download"></span>Exportar CSV</button></div>
         <div id="quality-note" class="quality-note"></div>
-        <article class="panel data-panel"><div class="data-bar"><div><span class="panel-kicker">REGISTROS</span><h3>Implantações cadastradas <span id="table-records-count"></span></h3></div><div class="table-search"><span data-icon="search"></span><input id="table-search" placeholder="Buscar cliente, filial ou segmento…" autocomplete="off"></div></div><div class="table-scroll"><table id="records-table"><thead><tr><th data-sort="cliente">CLIENTE <span>↕</span></th><th data-sort="filial">FILIAL <span>↕</span></th><th data-sort="segmento">SEGMENTO <span>↕</span></th><th data-sort="mes">MÊS <span>↕</span></th><th data-sort="target">TARGET <span>↕</span></th><th data-sort="gasto">GASTO <span>↕</span></th><th data-sort="economia">ECONOMIA <span>↕</span></th><th data-sort="efetivo">EFETIVO <span>↕</span></th><th data-sort="diasUteis">DIAS ÚTEIS <span>↕</span></th><th data-sort="visita">VISITA</th></tr></thead><tbody id="records-body"></tbody></table></div><div class="table-footer"><span id="table-page-info">—</span><div class="pager"><button class="icon-button" id="table-prev" title="Página anterior"><span data-icon="chevron-left"></span></button><span id="table-page-number">1</span><button class="icon-button" id="table-next" title="Próxima página"><span data-icon="chevron-right"></span></button></div></div></article>
+        <article class="panel data-panel"><div class="data-bar"><div><span class="panel-kicker">REGISTROS</span><h3>Implantações cadastradas <span id="table-records-count"></span></h3></div><div class="table-search"><span data-icon="search"></span><input id="table-search" placeholder="Buscar cliente, filial ou segmento…" autocomplete="off"></div></div><div class="table-scroll"><table id="records-table"><thead><tr><th data-sort="cliente">CLIENTE <span>↕</span></th><th data-sort="filial">FILIAL <span>↕</span></th><th data-sort="segmento">SEGMENTO <span>↕</span></th><th data-sort="mes">MÊS <span>↕</span></th><th data-sort="target">TARGET <span>↕</span></th><th data-sort="gasto">GASTO <span>↕</span></th><th data-sort="economia">ECONOMIA <span>↕</span></th><th data-sort="efetivo">EFETIVO <span>↕</span></th><th data-sort="diasUteis">DIAS ÚTEIS <span>↕</span></th><th data-sort="visita">VISITA</th><th data-sort="notificacao">NOTIFICAÇÃO ↕</th><th data-sort="implantacao">IMPLANTAÇÃO ↕</th><th data-sort="status">STATUS ↕</th></tr></thead><tbody id="records-body"></tbody></table></div><div class="table-footer"><span id="table-page-info">—</span><div class="pager"><button class="icon-button" id="table-prev" title="Página anterior"><span data-icon="chevron-left"></span></button><span id="table-page-number">1</span><button class="icon-button" id="table-next" title="Próxima página"><span data-icon="chevron-right"></span></button></div></div></article>
       </section>
 
       <footer class="page-footer"><span>IMPLANTAÇÕES 2026 <span class="footer-separator">/</span> BI OPERACIONAL</span><span>Fonte: <span id="fonte-rodape">aguardando conexão</span> <span class="footer-separator">•</span> Indicadores recalculados automaticamente</span></footer>

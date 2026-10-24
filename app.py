@@ -4,6 +4,7 @@ Lê a planilha Excel .xlsx do diretório dados em cada alteração do arquivo.
 """
 from __future__ import annotations
 
+import math
 import json
 import hashlib
 import time
@@ -63,14 +64,17 @@ def norm_segment(v):
 
 
 def as_num(v):
-    if isinstance(v, (int, float)) and not isinstance(v, bool):
-        return float(v)
-    if isinstance(v, str) and v.strip():
-        try:
-            return float((lambda s: s.replace('.', '').replace(',', '.') if ',' in s else s)(v.strip().replace('R$', '').replace(' ', '')))
-        except ValueError:
-            return None
-    return None
+    if isinstance(v, bool):
+        return None
+    try:
+        if isinstance(v, str):
+            v = v.strip().replace('R$', '').replace(' ', '')
+            if ',' in v:
+                v = v.replace('.', '').replace(',', '.')
+        n = float(v)
+        return n if math.isfinite(n) else None
+    except (ValueError, TypeError):
+        return None
 
 
 def excel_date(v):
@@ -84,7 +88,10 @@ def excel_date(v):
     if isinstance(v, str):
         v = v.strip()
         if re.fullmatch(r'\d{4}-\d{2}-\d{2}', v):
-            return v
+            try:
+                return datetime.strptime(v, '%Y-%m-%d').date().isoformat()
+            except ValueError:
+                return None
         for fmt in ('%d/%m/%Y', '%m/%d/%Y'):
             try:
                 return datetime.strptime(v, fmt).date().isoformat()
@@ -154,6 +161,7 @@ def build_data(raw=None, source_name=None, source_version=None, source_updated=N
     records = []
     issues = {'semMes': 0, 'semFilial': 0, 'semSegmento': 0, 'efetivoInvalido': 0, 'prazoNegativo': 0}
     for excel_row, r in enumerate(raw[1:], 2):
+        r = list(r[:13]) + [None] * max(0, 13-len(r))
         cliente = clean_text(r[1], '')
         if not cliente:
             continue  # evita zeros provenientes de fórmulas em linhas vazias
@@ -175,14 +183,14 @@ def build_data(raw=None, source_name=None, source_version=None, source_updated=N
             'cliente': cliente,
             'filial': filial,
             'segmento': seg,
-            'target': as_num(r[4]) or 0,
-            'gasto': as_num(r[5]) or 0,
-            'economia': as_num(r[6]) or 0,
+            'target': as_num(r[4]),
+            'gasto': as_num(r[5]),
+            'economia': as_num(r[6]),
             'notificacao': excel_date(r[7]),
             'implantacao': excel_date(r[8]),
             'diasUteis': prazo,
             'status': clean_text(r[10]),
-            'efetivo': effective or 0,
+            'efetivo': effective if effective is not None and effective >= 0 else None,
             'visita': visit,
         })
     return {
