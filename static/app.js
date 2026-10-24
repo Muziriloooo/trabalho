@@ -141,7 +141,7 @@ function spark(values,color){
 function renderKpis(rows){
  const validTotal=key=>rows.some(r=>typeof r[key]==='number')?sum(rows,key):null;
  const cards=[['Implantações realizadas',fmtInt(rows.length),'Registros com cliente identificado','clipboard'],['Efetivo mobilizado',validTotal('efetivo')===null?'—':fmtInt(validTotal('efetivo')),'Soma do efetivo informado','users'],['Gasto realizado',fmtMoney(validTotal('gasto')),'Valores executados na base','wallet'],['Custo evitado',fmtMoney(validTotal('economia')),'Economia declarada na base','savings']];
- $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic])=>`<article class="kpi-card"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc}${rows.some(r=>['target','gasto','economia','efetivo'].some(k=>r[k]==null))?' · Base com campos ausentes':''}</div></article>`).join('');
+ $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic])=>`<button class="kpi-card kpi-drill" type="button" data-drill="data" title="Abrir registros que compõem este indicador"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc} · Ver registros</div></button>`).join('');
  const lead=meanLead(rows),clients=uniq(rows.map(r=>r.cliente.trim().toLocaleUpperCase('pt-BR'))).length;
  let comparison='Selecione um mês para comparar com o anterior.';
  if(filters.month){const d=new Date(filters.month+'-01T12:00:00Z');d.setUTCMonth(d.getUTCMonth()-1);const previous=d.toISOString().slice(0,7);const base=data.filter(r=>r.mes===previous&&(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR'))));comparison=base.length?`${rows.length-base.length>=0?'+':''}${fmtInt(rows.length-base.length)} registros vs. ${monthLabel(previous)}`:'Sem base comparável no mês anterior.';}
@@ -159,7 +159,7 @@ function barSvg(months,key,options={}){
  const avg=months.reduce((a,m)=>a+(Number(m[key])||0),0)/months.length;
  if(avg>0){const ay=top+avail-avg/nice*avail;svg+=`<line x1="${left}" x2="${elWidth-right}" y1="${ay}" y2="${ay}" stroke="#e7ad2b" stroke-width="1.5" stroke-dasharray="5 6" opacity=".76"/><text x="${elWidth-right-4}" y="${Math.max(top+12,ay-8)}" text-anchor="end" font-size="11" font-weight="800" fill="#b07a14">MÉDIA ${fmtDecimal(avg,1)}</text>`;}
  months.forEach((m,i)=>{const value=Number(m[key])||0,xc=left+space*(i+.5),bw=Math.min(45,space*.53),bh=value/nice*avail,base=top+avail,highlight=filters.month===m.mes;
- svg+=`<rect class="chart-hover" tabindex="0" role="button" x="${xc-bw/2}" y="${base-bh}" width="${bw}" height="${Math.max(bh,0)}" rx="4" fill="${highlight?'#f3b82b':`url(#bars-${key})`}" data-tip="${safeAttr(`${monthLabel(m.mes)}\n${options.name||'Total'}: ${fmtInt(value)}`)}" data-month="${safeAttr(m.mes)}"/>`;
+ svg+=`<rect class="chart-hover" tabindex="0" role="button" x="${xc-bw/2}" y="${base-bh}" width="${bw}" height="${Math.max(bh,0)}" rx="4" fill="${highlight?'#f3b82b':`url(#bars-${key})`}" data-tip="${safeAttr(`${monthLabel(m.mes)}\n${options.name||'Total'}: ${fmtInt(value)}\nClique para ver registros`)}" data-month="${safeAttr(m.mes)}" data-drill="data"/>`;
  if(bh>18)svg+=`<text x="${xc}" y="${base-bh-8}" text-anchor="middle" font-size="10" font-weight="800" fill="#587394">${fmtInt(value)}</text>`;
  svg+=`<text class="chart-axis" x="${xc}" y="${base+23}" text-anchor="middle" style="font-weight:${highlight?'900':'600'};fill:${highlight?'#b9830d':'#93a2b4'}">${m.label}</text>`;});
  return svg+'</svg>';
@@ -170,7 +170,7 @@ function financeSvg(months,large=false){
  const ser=[['target','#2b5aa8','Target'],['gasto','#f0af28','Gasto'],['economia','#30ae91','Economia']];let svg=`<svg viewBox="0 0 ${W} ${H}" aria-label="Comparativo financeiro por mês" role="img">${grid}`;
  months.forEach((m,i)=>{const xc=L+space*(i+.5),bw=Math.min(19,(space-10)/4),gap=3;
  ser.forEach(([k,color,label],j)=>{const v=Number(m[k])||0,barH=Math.abs(y(v)-y(0));const x=xc+(j-1)*(bw+gap)-bw/2;
- svg+=`<rect class="chart-hover" tabindex="0" role="button" x="${x}" y="${Math.min(y(v),y(0))}" height="${barH}" width="${bw}" rx="2.5" fill="${color}" data-tip="${safeAttr(`${monthLabel(m.mes)}\n${label}: ${fmtExactMoney(v)}`)}" data-month="${m.mes}"/>`;});
+ svg+=`<rect class="chart-hover" tabindex="0" role="button" x="${x}" y="${Math.min(y(v),y(0))}" height="${barH}" width="${bw}" rx="2.5" fill="${color}" data-tip="${safeAttr(`${monthLabel(m.mes)}\n${label}: ${fmtExactMoney(v)}\nClique para ver registros`)}" data-month="${m.mes}" data-drill="data"/>`;});
  svg+=`<text class="chart-axis" x="${xc}" y="${T+P+24}" text-anchor="middle">${m.label}</text>`;});return svg+'</svg>';
 }
 function donut(elId,legendId,entries,total,kind){
@@ -187,15 +187,15 @@ function renderFinance(rows){
  const mm=monthlyRows(rows),target=sum(rows,'target'),gasto=sum(rows,'gasto'),economia=sum(rows,'economia');
  $('finance-chart').innerHTML=financeSvg(mm);$('finance-chart-large').innerHTML=financeSvg(mm,true);
  const details=[['Target previsto',target,'#2b5aa8','Total previsto conforme a planilha'],['Total utilizado',gasto,'#f0af28','Valor de gasto registrado'],['Custo evitado',economia,'#30ae91','Economia registrada na planilha']];
- $('financial-kpis').innerHTML=details.map(([label,v,c,desc])=>`<div class="finance-kpi"><div class="title"><i style="background:${c}"></i>${label}</div><div class="big">${rows.some(r=>r[{ 'Target previsto':'target','Total utilizado':'gasto','Custo evitado':'economia'}[label]]!=null)?fmtMoney(v):'—'}</div><div class="foot">${desc}</div></div>`).join('');
+ $('financial-kpis').innerHTML=details.map(([label,v,c,desc])=>`<button type="button" class="finance-kpi kpi-drill" data-drill="data" title="Abrir registros que compõem este indicador"><div class="title"><i style="background:${c}"></i>${label}</div><div class="big">${rows.some(r=>r[{ 'Target previsto':'target','Total utilizado':'gasto','Custo evitado':'economia'}[label]]!=null)?fmtMoney(v):'—'}</div><div class="foot">${desc} · Ver registros</div></button>`).join('');
  const branches=groupBy(rows,'filial','target'),max=Math.max(...branches.map(x=>x.value),1);
- $('financial-branches').innerHTML=branches.map(e=>`<div class="financial-branch-row"><div class="financial-branch-name" title="${safeAttr(e.name)}">${escapeHtml(e.name)}</div><div class="financial-branch-bar"><div style="width:${Math.max(0,e.value/max*100).toFixed(1)}%"></div></div><div class="financial-branch-amount">${fmtMoney(e.value)}<small>Gasto ${fmtMoney(sum(rows.filter(r=>r.filial===e.name),'gasto'))}</small></div></div>`).join('')||emptyChart();
+ $('financial-branches').innerHTML=branches.map(e=>`<button type="button" class="financial-branch-row" data-filial="${safeAttr(e.name)}" data-drill="data" title="Ver registros de ${safeAttr(e.name)}"><span class="financial-branch-name">${escapeHtml(e.name)}</span><span class="financial-branch-bar"><span style="width:${Math.max(0,e.value/max*100).toFixed(1)}%"></span></span><span class="financial-branch-amount">${fmtMoney(e.value)}<small>Gasto ${fmtMoney(sum(rows.filter(r=>r.filial===e.name),'gasto'))}</small></span></button>`).join('')||emptyChart();
  const rate=target?gasto/target*100:0,savedRate=target?economia/target*100:0,rest=Math.max(0,100-rate-savedRate),norm=Math.max(100,rate+savedRate);
  $('finance-split').innerHTML=`<div class="composition-value">${target>0?fmtDecimal(rate,1)+'%':'—'}</div><div class="composition-desc">Do target foi utilizado</div><div class="composition-track"><div class="spent" style="width:${Math.max(0,rate/norm*100)}%"></div><div class="saved" style="width:${Math.max(0,savedRate/norm*100)}%"></div><div class="other" style="width:${Math.max(0,rest/norm*100)}%"></div></div><div class="composition-legend"><span><i class="key-dot" style="background:#eab232"></i> Gastos <b>${target>0?fmtDecimal(rate,1)+'%':'—'}</b></span><span><i class="key-dot" style="background:#30ae91"></i> Economizado <b>${target>0?fmtDecimal(savedRate,1)+'%':'—'}</b></span></div><p style="font-size:10px;color:#a0aec0;margin-top:16px">Participação calculada sobre o target; os valores declarados podem não fechar exatamente devido a ajustes na planilha.</p>`;
 }
 function renderRanks(rows){
  const branches=groupBy(rows,'filial').slice(0,8),max=branches[0]?.value||1;
- $('filial-rank').innerHTML=branches.map((e,i)=>`<button class="ranking-row" data-filial="${safeAttr(e.name)}"><span class="rank-top"><span class="rank-name">${String(i+1).padStart(2,'0')} · ${escapeHtml(e.name)}</span><span class="rank-count">${fmtInt(e.value)}</span></span><span class="rank-track"><span class="rank-fill" style="display:block;width:${e.value/max*100}%"></span></span></button>`).join('')||emptyChart();
+ $('filial-rank').innerHTML=branches.map((e,i)=>`<button class="ranking-row" data-filial="${safeAttr(e.name)}" data-drill="data" title="Ver registros de ${safeAttr(e.name)}"><span class="rank-top"><span class="rank-name">${String(i+1).padStart(2,'0')} · ${escapeHtml(e.name)}</span><span class="rank-count">${fmtInt(e.value)}</span></span><span class="rank-track"><span class="rank-fill" style="display:block;width:${e.value/max*100}%"></span></span></button>`).join('')||emptyChart();
 }
 function leadSvg(months){
  const d=months.filter(m=>m.lead!==null);if(!d.length)return emptyChart('Nenhum prazo válido encontrado.');
@@ -255,9 +255,16 @@ $('file-input').addEventListener('change',async e=>{
 $('table-search').addEventListener('input',e=>{tableSearch=e.target.value.trim();tablePage=1;renderTable(currentRows);});
 document.querySelectorAll('#records-table th[data-sort]').forEach(th=>th.addEventListener('click',()=>{let key=th.dataset.sort;if(sortKey===key)sortDir*=-1;else {sortKey=key;sortDir=1;}tablePage=1;renderTable(currentRows);}));
 $('table-prev').addEventListener('click',()=>{tablePage--;renderTable(currentRows);});$('table-next').addEventListener('click',()=>{tablePage++;renderTable(currentRows);});$('export-csv').addEventListener('click',exportCSV);
+function drillToData(target){
+ const map=[['month','month'],['filial','filial'],['segment','segmento'],['visit','visita']];
+ for(const [prop,key] of map){if(target.dataset[prop]!==undefined){filters[key]=target.dataset[prop];const control={month:'filter-month',filial:'filter-filial',segmento:'filter-segmento',visita:'filter-visita'}[key];$(control).value=filters[key];}}
+ tablePage=1;geoPage=1;switchPage('dados');render();window.scrollTo({top:0,behavior:'smooth'});
+ toast(`${fmtInt(currentRows.length)} registros abertos na Base de Dados.`);
+}
 document.addEventListener('click',e=>{
  const remove=e.target.closest('[data-clear]');if(remove){setFilter(remove.dataset.clear,filters[remove.dataset.clear]);return;}
  const nav=e.target.closest('.link-button[data-page]');if(nav){switchPage(nav.dataset.page);window.scrollTo({top:0,behavior:'smooth'});return;}
+ const drill=e.target.closest('[data-drill="data"]');if(drill){drillToData(drill);return;}
  const target=e.target.closest('[data-month],[data-filial],[data-segment],[data-visit]');if(target){const map=[['month','month'],['filial','filial'],['segment','segmento'],['visit','visita']];for(const [prop,k] of map){if(target.dataset[prop]!==undefined){setFilter(k,target.dataset[prop]);break;}}}
 });
 const tooltip=$('tooltip');document.addEventListener('pointermove',e=>{
@@ -268,7 +275,7 @@ const tooltip=$('tooltip');document.addEventListener('pointermove',e=>{
 });document.addEventListener('pointerleave',()=>tooltip.hidden=true);
 // Tooltip also available by keyboard when focusing chart bars.
 document.addEventListener('focusin',e=>{const el=e.target.closest?.('[data-tip]');if(!el)return;tooltip.textContent=el.dataset.tip||'';tooltip.hidden=false;const r=el.getBoundingClientRect();tooltip.style.left=Math.min(innerWidth-235,Math.max(12,r.left))+'px';tooltip.style.top=Math.max(12,r.top-60)+'px';});document.addEventListener('focusout',e=>{if(e.target.closest?.('[data-tip]'))tooltip.hidden=true;});
-document.addEventListener('keydown',e=>{if(!['Enter',' '].includes(e.key))return;const target=e.target.closest?.('[data-month],[data-filial],[data-segment],[data-visit]');if(target){e.preventDefault();target.click();}});
+document.addEventListener('keydown',e=>{if(!['Enter',' '].includes(e.key))return;const target=e.target.closest?.('[data-month],[data-filial],[data-segment],[data-visit],[data-drill]');if(target){e.preventDefault();target.click();}});
 
 // Mapa interativo; sem bibliotecas externas. Os pontos representam CENTROIDES de filiais.
 const GEO_LOCS={

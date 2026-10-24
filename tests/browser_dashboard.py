@@ -10,6 +10,10 @@ with sync_playwright() as p:
  assert page.locator('.kpi-card').count()==4
  assert page.locator('.kpi-value').first.inner_text()=='60'
  assert '4,0 dias úteis' in page.locator('#executive-context').inner_text()
+ page.locator('.kpi-card').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#table-records-count').inner_text()=='(60)'
+ page.locator('.nav-item[data-page="overview"]').click();page.locator('#monthly-chart [data-month]').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#filter-month').input_value()=='2026-01';assert page.locator('#table-records-count').inner_text()=='(10)'
+ page.locator('#clear-filters').click();page.locator('.nav-item[data-page="financeiro"]').click();page.locator('.financial-branch-row').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#filter-filial').input_value()
+ page.locator('#clear-filters').click();page.locator('.nav-item[data-page="overview"]').click()
  page.screenshot(path='/tmp/executive-overview.png',full_page=True)
  for view in ['financeiro','segmentos','mapa','dados']:
   page.locator(f'.nav-item[data-page="{view}"]').click();page.wait_for_timeout(120)

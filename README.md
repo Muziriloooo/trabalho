@@ -19,6 +19,7 @@ Preserve `config_google.json`, `segredos/google_service_account.json` e os arqui
 - Comparação mensal usa o mês calendário anterior com os mesmos filtros; sem registros comparáveis, informa indisponibilidade.
 - O mapa usa referências aproximadas das filiais, nunca endereços de clientes, e mantém agrupamento, zoom e movimentação sem serviços de mapas externos.
 - A Base de Dados exibe as 13 colunas, com datas brasileiras e CSV filtrado. A planilha de origem não é modificada pelo redesenho.
+- Cartões e barras de indicadores abrem a Base de Dados. Barras de mês e filial aplicam o respectivo recorte antes de abrir; os demais cartões mantêm os filtros globais já selecionados.
 
 Falhas de atualização mantêm a última leitura na memória da página com aviso explícito. A primeira leitura malsucedida mostra erro, sem dados fictícios. A prévia HTML antiga continua sendo uma fotografia estática independente; use o servidor para o visual atualizado e a sincronização.
 
