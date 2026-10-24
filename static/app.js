@@ -393,7 +393,8 @@ function geoCluster(groups,w,h){let points=groups.map(g=>({...g,p:geoProjectScre
 function geoDrawMap(){const v=$('geo-viewport');if(v.closest('.page')?.hidden)return;const w=v.clientWidth,h=v.clientHeight;if(!w||!h)return;
  geoPaintFallback(w,h);geoDrawTiles(w,h);const clusters=geoCluster(geoGroups(geoRows),w,h);
  $('geo-markers').innerHTML=clusters.map((c,i)=>{const n=c.items.reduce((a,g)=>a+g.count,0),isCluster=c.items.length>1,size=Math.min(52,Math.max(30,28+Math.sqrt(n)*1.6));const names=c.items.map(g=>g.name).join(', ');
- return `<button class="geo-pin ${isCluster?'cluster':''}" data-geo-cluster="${i}" title="${safeAttr(names)} · ${fmtInt(n)} implantações" aria-label="${safeAttr(names)}: ${fmtInt(n)} implantações" style="left:${c.x.toFixed(1)}px;top:${c.y.toFixed(1)}px;width:${size.toFixed(1)}px;height:${size.toFixed(1)}px">${fmtInt(n)}</button>`;}).join('');
+ const label=!isCluster&&geoMap.zoom>=6?`<span class="geo-pin-label">${escapeHtml(c.items[0].name)}</span>`:'';
+ return `<button class="geo-pin ${isCluster?'cluster':''}" data-geo-cluster="${i}" title="${safeAttr(names)} · ${fmtInt(n)} implantações" aria-label="${safeAttr(names)}: ${fmtInt(n)} implantações" style="left:${c.x.toFixed(1)}px;top:${c.y.toFixed(1)}px;width:${size.toFixed(1)}px;height:${size.toFixed(1)}px">${fmtInt(n)}${label}</button>`;}).join('');
  geoDrawMap.clusters=clusters;
 }
 function geoRenderFocus(rows){const box=$('geo-region-focus'),gs=geoGroups(rows);const selected=gs.find(g=>g.name===geoFocus)||(filters.filial?gs.find(g=>g.name===filters.filial):null);
