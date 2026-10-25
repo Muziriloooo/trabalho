@@ -154,9 +154,9 @@ function previousMonth(month){const d=new Date(month+'-01T12:00:00Z');d.setUTCMo
 function comparisonScope(){
  const sameFilters=r=>(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR')));
  const scoped=data.filter(sameFilters),months=uniq(scoped.map(r=>r.mes).filter(Boolean)).sort();
- const current=filters.month||months.at(-1)||'';
+ const current=filters.month||'';
  const previous=current?previousMonth(current):'';
- return {current,previous,currentRows:scoped.filter(r=>r.mes===current),previousRows:scoped.filter(r=>r.mes===previous),automatic:!filters.month};
+ return {current,previous,currentRows:scoped.filter(r=>r.mes===current),previousRows:scoped.filter(r=>r.mes===previous)};
 }
 function metricChange(current,previous,kind,hasPrevious){
  if(!hasPrevious)return {state:'neutral',text:'Sem mês anterior comparável'};
@@ -171,16 +171,16 @@ function renderKpis(rows){
  const validTotal=key=>rows.some(r=>typeof r[key]==='number')?sum(rows,key):null;
  const scope=comparisonScope(),current=scope.currentRows,previous=scope.previousRows;
  const metricTotal=(items,key)=>items.some(r=>typeof r[key]==='number')?sum(items,key):null;
- const comparisonLabel=scope.current?(scope.automatic?`Último mês: ${monthLabel(scope.current)} vs. ${monthLabel(scope.previous)}`:`vs. ${monthLabel(scope.previous)}`):'Sem período comparável';
+ const comparisonLabel=scope.current?`vs. ${monthLabel(scope.previous)}`:'';
  const cards=[
   ['Implantações realizadas',fmtInt(rows.length),'Registros com cliente identificado','clipboard',metricChange(current.length,previous.length,'count',previous.length>0)],
   ['Efetivo mobilizado',validTotal('efetivo')===null?'—':fmtInt(validTotal('efetivo')),'Soma do efetivo informado','users',metricChange(metricTotal(current,'efetivo')||0,metricTotal(previous,'efetivo')||0,'people',previous.length>0)],
   ['Gasto realizado',fmtMoney(validTotal('gasto')),'Valores executados na base','wallet',metricChange(metricTotal(current,'gasto')||0,metricTotal(previous,'gasto')||0,'money',previous.length>0)],
   ['Custo evitado',fmtMoney(validTotal('economia')),'Economia declarada na base','savings',metricChange(metricTotal(current,'economia')||0,metricTotal(previous,'economia')||0,'money',previous.length>0)],
  ];
- $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic,change])=>`<button class="kpi-card kpi-drill" type="button" data-drill="data" title="Abrir registros que compõem este indicador"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc}</div><div class="kpi-change ${change.state}">${change.text}<small>${comparisonLabel}</small></div></button>`).join('');
+ $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic,change])=>`<button class="kpi-card kpi-drill" type="button" data-drill="data" title="Abrir registros que compõem este indicador"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc}</div>${filters.month?`<div class="kpi-change ${change.state}">${change.text}<small>${comparisonLabel}</small></div>`:''}</button>`).join('');
  const lead=meanLead(rows),clients=uniq(rows.map(r=>r.cliente.trim().toLocaleUpperCase('pt-BR'))).length;
- const comparison=scope.previousRows.length?`${scope.currentRows.length-scope.previousRows.length>=0?'+':''}${fmtInt(scope.currentRows.length-scope.previousRows.length)} registros · ${comparisonLabel}`:'Sem base comparável no mês anterior.';
+ const comparison=!filters.month?'Selecione um mês para comparar com o anterior.':scope.previousRows.length?`${scope.currentRows.length-scope.previousRows.length>=0?'+':''}${fmtInt(scope.currentRows.length-scope.previousRows.length)} registros · ${comparisonLabel}`:'Sem base comparável no mês anterior.';
  $('executive-context').innerHTML=`<div><span>LEAD TIME</span><strong>${lead===null?'—':fmtDecimal(lead,1)+' dias úteis'}</strong><small>Apenas prazos válidos, não negativos</small></div><div><span>CLIENTES DISTINTOS</span><strong>${fmtInt(clients)}</strong><small>Contagem por nome normalizado</small></div><div><span>COMPARAÇÃO MENSAL</span><strong class="comparison">${escapeHtml(comparison)}</strong><small>Mesmos filtros de filial, segmento, visita e cliente</small></div>`;
 }
 const axisNum = n => Math.abs(n)>=1e6?fmtDecimal(n/1e6,1)+' mi':Math.abs(n)>=1e3?fmtInt(n/1e3)+' mil':fmtInt(n);

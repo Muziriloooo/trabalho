@@ -9,7 +9,7 @@ with sync_playwright() as p:
  page.goto(os.getenv('DASHBOARD_TEST_URL','http://127.0.0.1:8765'));page.wait_for_selector('.kpi-card')
  assert page.locator('.kpi-card').count()==4
  assert page.locator('.kpi-value').first.inner_text()=='60'
- assert 'Último mês: Jun 2026 vs. Mai 2026' in page.locator('.kpi-card').first.inner_text()
+ assert page.locator('.kpi-change').count()==0
  page.select_option('#filter-month','2026-02');assert 'Sem variação mensal' in page.locator('.kpi-card').first.inner_text()
  page.select_option('#filter-month','2026-01');assert 'Sem mês anterior comparável' in page.locator('.kpi-card').first.inner_text()
  page.select_option('#filter-month','')
