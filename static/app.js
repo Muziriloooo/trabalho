@@ -55,6 +55,17 @@ let data=[], meta={}, activePage='overview', metric='count', tableSearch='', tab
 const filters = {month:'',filial:'',segmento:'',visita:'',client:''};
 let currentRows=[];
 const colors = ['#2d66b3','#f1b737','#34af91','#875fc7','#e77561','#8196b4','#50afd7'];
+const segmentColors = {
+ 'PATRIMONIAL':'#12345C',
+ 'FACILITIES':'#2563EB',
+ 'FACILITES':'#2563EB',
+ 'SEGURANÇA':'#F9B900',
+ 'SEGURANCA':'#F9B900',
+ 'VIGILANTE':'#10B981',
+ 'NÃO INFORMADO':'#94A3B8',
+ 'NAO INFORMADO':'#94A3B8',
+};
+const colorForSegment = (name,index) => segmentColors[String(name).toLocaleUpperCase('pt-BR')] || colors[index%colors.length];
 const pageInfo = {
  overview:['Visão geral','Painel de <span>Implantações.</span>','Visão consolidada dos resultados, recursos e desempenho das implantações.'],
  financeiro:['Financeiro','Inteligência <span>Financeira.</span>','Acompanhe investimentos, execução orçamentária e custos evitados.'],
@@ -174,7 +185,7 @@ function financeSvg(months,large=false){
  svg+=`<text class="chart-axis" x="${xc}" y="${T+P+24}" text-anchor="middle">${m.label}</text>`;});return svg+'</svg>';
 }
 function donut(elId,legendId,entries,total,kind){
- const colorsFor=entries.map((x,i)=>colors[i%colors.length]);const s=entries.reduce((acc,e)=>acc+e.value,0)||1;const r=78,circ=2*Math.PI*r;let used=0;
+ const colorsFor=entries.map((x,i)=>kind==='segment'?colorForSegment(x.name,i):colors[i%colors.length]);const s=entries.reduce((acc,e)=>acc+e.value,0)||1;const r=78,circ=2*Math.PI*r;let used=0;
  let svg=`<svg viewBox="0 0 240 220" role="img" aria-label="Gráfico de distribuição"><circle cx="120" cy="107" r="${r}" stroke="#edf1f7" stroke-width="29" fill="none"/>`;
  entries.forEach((e,i)=>{if(!e.value)return;const len=e.value/s*circ;svg+=`<circle cx="120" cy="107" r="${r}" stroke="${colorsFor[i]}" stroke-width="29" stroke-dasharray="${Math.max(len-.9,0)} ${circ}" stroke-dashoffset="${-used}" fill="none" transform="rotate(-90 120 107)" data-tip="${safeAttr(`${e.name}: ${fmtInt(e.value)} (${fmtDecimal(100*e.value/s,1)}%)`)}" ${kind==='segment'?`data-segment="${safeAttr(e.name)}"`:kind==='visit'?`data-visit="${safeAttr(e.name)}"`:''} class="chart-hover" tabindex="0" role="button"/>`;used+=len;});
  svg+=`<text x="120" y="104" text-anchor="middle" class="donut-center-large">${fmtInt(total)}</text><text x="120" y="126" text-anchor="middle" class="donut-center-small">${kind==='visit'?'VISITAS':'REGISTROS'}</text></svg>`;
