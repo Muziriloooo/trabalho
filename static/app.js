@@ -56,12 +56,12 @@ const filters = {month:'',filial:'',segmento:'',visita:'',client:''};
 let currentRows=[];
 const colors = ['#2d66b3','#f1b737','#34af91','#875fc7','#e77561','#8196b4','#50afd7'];
 const segmentColors = {
- 'PATRIMONIAL':'#12345C',
+ 'PATRIMONIAL':'#222A35',
  'FACILITIES':'#2563EB',
  'FACILITES':'#2563EB',
- 'SEGURANÇA':'#F9B900',
- 'SEGURANCA':'#F9B900',
- 'VIGILANTE':'#10B981',
+ 'SEGURANÇA':'#10B981',
+ 'SEGURANCA':'#10B981',
+ 'VIGILANTE':'#F9B900',
  'NÃO INFORMADO':'#94A3B8',
  'NAO INFORMADO':'#94A3B8',
 };
