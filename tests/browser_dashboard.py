@@ -9,6 +9,9 @@ with sync_playwright() as p:
  page.goto(os.getenv('DASHBOARD_TEST_URL','http://127.0.0.1:8765'));page.wait_for_selector('.kpi-card')
  assert page.locator('.kpi-card').count()==4
  assert page.locator('.kpi-value').first.inner_text()=='60'
+ assert 'Último mês: Jun 2026 vs. Mai 2026' in page.locator('.kpi-card').first.inner_text()
+ page.select_option('#filter-month','2026-01');assert 'Sem mês anterior comparável' in page.locator('.kpi-card').first.inner_text()
+ page.select_option('#filter-month','')
  assert '4,0 dias úteis' in page.locator('#executive-context').inner_text()
  page.locator('.kpi-card').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#table-records-count').inner_text()=='(60)'
  page.locator('.nav-item[data-page="overview"]').click();page.locator('#monthly-chart [data-month]').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#filter-month').input_value()=='2026-01';assert page.locator('#table-records-count').inner_text()=='(10)'
