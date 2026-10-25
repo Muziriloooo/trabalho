@@ -158,8 +158,8 @@ function comparisonScope(){
  const previous=current?previousMonth(current):'';
  return {current,previous,currentRows:scoped.filter(r=>r.mes===current),previousRows:scoped.filter(r=>r.mes===previous),automatic:!filters.month};
 }
-function metricChange(current,previous,kind){
- if(!previous.length)return {state:'neutral',text:'Sem mês anterior comparável'};
+function metricChange(current,previous,kind,hasPrevious){
+ if(!hasPrevious)return {state:'neutral',text:'Sem mês anterior comparável'};
  const delta=current-previous,sign=delta>0?'+':delta<0?'−':'';
  if(!delta)return {state:'neutral',text:'Sem variação mensal'};
  const pct=previous===0?null:Math.abs(delta/previous*100);
@@ -173,10 +173,10 @@ function renderKpis(rows){
  const metricTotal=(items,key)=>items.some(r=>typeof r[key]==='number')?sum(items,key):null;
  const comparisonLabel=scope.current?(scope.automatic?`Último mês: ${monthLabel(scope.current)} vs. ${monthLabel(scope.previous)}`:`vs. ${monthLabel(scope.previous)}`):'Sem período comparável';
  const cards=[
-  ['Implantações realizadas',fmtInt(rows.length),'Registros com cliente identificado','clipboard',metricChange(current.length,previous.length,'count')],
-  ['Efetivo mobilizado',validTotal('efetivo')===null?'—':fmtInt(validTotal('efetivo')),'Soma do efetivo informado','users',metricChange(metricTotal(current,'efetivo')||0,metricTotal(previous,'efetivo')||0,'people')],
-  ['Gasto realizado',fmtMoney(validTotal('gasto')),'Valores executados na base','wallet',metricChange(metricTotal(current,'gasto')||0,metricTotal(previous,'gasto')||0,'money')],
-  ['Custo evitado',fmtMoney(validTotal('economia')),'Economia declarada na base','savings',metricChange(metricTotal(current,'economia')||0,metricTotal(previous,'economia')||0,'money')],
+  ['Implantações realizadas',fmtInt(rows.length),'Registros com cliente identificado','clipboard',metricChange(current.length,previous.length,'count',previous.length>0)],
+  ['Efetivo mobilizado',validTotal('efetivo')===null?'—':fmtInt(validTotal('efetivo')),'Soma do efetivo informado','users',metricChange(metricTotal(current,'efetivo')||0,metricTotal(previous,'efetivo')||0,'people',previous.length>0)],
+  ['Gasto realizado',fmtMoney(validTotal('gasto')),'Valores executados na base','wallet',metricChange(metricTotal(current,'gasto')||0,metricTotal(previous,'gasto')||0,'money',previous.length>0)],
+  ['Custo evitado',fmtMoney(validTotal('economia')),'Economia declarada na base','savings',metricChange(metricTotal(current,'economia')||0,metricTotal(previous,'economia')||0,'money',previous.length>0)],
  ];
  $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic,change])=>`<button class="kpi-card kpi-drill" type="button" data-drill="data" title="Abrir registros que compõem este indicador"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc}</div><div class="kpi-change ${change.state}">${change.text}<small>${comparisonLabel}</small></div></button>`).join('');
  const lead=meanLead(rows),clients=uniq(rows.map(r=>r.cliente.trim().toLocaleUpperCase('pt-BR'))).length;
