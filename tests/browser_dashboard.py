@@ -10,12 +10,13 @@ with sync_playwright() as p:
  assert page.locator('.kpi-card').count()==4
  assert page.locator('.kpi-value').first.inner_text()=='60'
  assert page.locator('.kpi-change').count()==0
- page.select_option('#filter-month','2026-02');assert 'Sem variação mensal' in page.locator('.kpi-card').first.inner_text()
- page.select_option('#filter-month','2026-01');assert 'Sem mês anterior comparável' in page.locator('.kpi-card').first.inner_text()
- page.select_option('#filter-month','')
+ page.locator('#filter-month').click();page.locator('[data-month-choice="2026-02"]').click();assert page.locator('#filter-month').inner_text()=='Fev 2026';assert page.locator('#overview-records').inner_text()=='10 REGISTROS'
+ page.select_option('#compare-month','2026-01');assert 'Sem variação mensal' in page.locator('.kpi-card').first.inner_text()
+ page.locator('#filter-month').click();page.locator('[data-month-choice="2026-01"]').click();assert page.locator('#filter-month').inner_text()=='2 meses selecionados';assert page.locator('#overview-records').inner_text()=='20 REGISTROS';assert page.locator('#compare-month').is_disabled()
+ page.locator('#filter-month').click();page.locator('[data-month-choice=""]').click()
  assert '4,0 dias úteis' in page.locator('#executive-context').inner_text()
  page.locator('.kpi-card').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#table-records-count').inner_text()=='(60)'
- page.locator('.nav-item[data-page="overview"]').click();page.locator('#monthly-chart [data-month]').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#filter-month').input_value()=='2026-01';assert page.locator('#table-records-count').inner_text()=='(10)'
+ page.locator('.nav-item[data-page="overview"]').click();page.locator('#monthly-chart [data-month]').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#filter-month').inner_text()=='Jan 2026';assert page.locator('#table-records-count').inner_text()=='(10)'
  page.locator('#clear-filters').click();page.locator('.nav-item[data-page="financeiro"]').click();page.locator('.financial-branch-row').first.click();assert page.locator('#page-dados').is_visible();assert page.locator('#filter-filial').input_value()
  page.locator('#clear-filters').click();page.locator('.nav-item[data-page="overview"]').click()
  page.screenshot(path='/tmp/executive-overview.png',full_page=True)

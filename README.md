@@ -16,7 +16,7 @@ Preserve `config_google.json`, `segredos/google_service_account.json` e os arqui
 - Clientes distintos são contados pelo nome sem espaços nas extremidades e sem distinção entre maiúsculas e minúsculas; não equivale a identificação por CNPJ.
 - Efetivo e valores financeiros somam os campos numéricos disponíveis. Ausentes, erros de fórmula e valores não finitos permanecem nulos; zero informado é preservado. Totais podem ser parciais quando a base tem campos ausentes.
 - Lead time é a média dos dias úteis numéricos não negativos informados na planilha. Não calcula feriados nem substitui campos vazios por zero.
-- Comparação mensal usa o mês calendário anterior com os mesmos filtros; sem registros comparáveis, informa indisponibilidade.
+- O filtro de meses permite selecionar vários períodos para analisar o acumulado. A comparação é manual: selecione apenas um mês e escolha o mês de referência em “Comparar com”; os dois usam os mesmos filtros de filial, segmento, visita e cliente. Não há comparação automática quando Todos os meses ou vários meses estão selecionados.
 - O mapa usa referências aproximadas das filiais, nunca endereços de clientes, e mantém agrupamento, zoom e movimentação sem serviços de mapas externos.
 - A Base de Dados exibe as 13 colunas, com datas brasileiras e CSV filtrado. A planilha de origem não é modificada pelo redesenho.
 - Cartões e barras de indicadores abrem a Base de Dados. Barras de mês e filial aplicam o respectivo recorte antes de abrir; os demais cartões mantêm os filtros globais já selecionados.

@@ -44,7 +44,8 @@
       <section class="filters-panel" aria-label="Filtros do painel">
         <div class="filters-heading"><span data-icon="filter"></span><strong>Filtros</strong><span class="filter-note">Atualizam indicadores, gráficos e tabelas em todas as telas</span></div>
         <div class="filter-controls">
-          <label class="filter-control"><span>MÊS</span><select id="filter-month"><option value="">Todos os meses</option></select></label>
+          <div class="filter-control month-picker-control"><span>MESES</span><button type="button" class="month-picker-toggle" id="filter-month" aria-expanded="false">Todos os meses</button><div class="month-picker-menu" id="month-picker-menu" hidden></div></div>
+          <label class="filter-control comparison-control"><span>COMPARAR COM</span><select id="compare-month"><option value="">Sem comparação</option></select></label>
           <label class="filter-control"><span>FILIAL / BASE</span><select id="filter-filial"><option value="">Todas as filiais</option></select></label>
           <label class="filter-control"><span>SEGMENTO</span><select id="filter-segmento"><option value="">Todos os segmentos</option></select></label>
           <label class="filter-control"><span>VISITA TÉCNICA</span><select id="filter-visita"><option value="">Todas</option><option>SIM</option><option>NÃO</option><option>Não informado</option></select></label>

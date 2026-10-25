@@ -52,7 +52,7 @@ const uniq = a=>[...new Set(a)];
 const groupBy = (rows,field,metric='count') => {let m=new Map();rows.forEach(r=>{const k=r[field]||'Não informado';m.set(k,(m.get(k)||0)+(metric==='count'?1:Number(r[metric])||0));});return [...m.entries()].map(([name,value])=>({name,value})).sort((a,b)=>b.value-a.value);};
 const meanLead = rows => {const r=rows.map(x=>x.diasUteis).filter(x=>typeof x==='number'&&Number.isFinite(x)&&x>=0);return r.length ? r.reduce((a,b)=>a+b,0)/r.length : null;};
 let data=[], meta={}, activePage='overview', metric='count', tableSearch='', tablePage=1, sortKey='cliente', sortDir=1, lastStamp='', allMonths=[];
-const filters = {month:'',filial:'',segmento:'',visita:'',client:''};
+const filters = {month:'',months:[],compareMonth:'',filial:'',segmento:'',visita:'',client:''};
 let currentRows=[];
 const colors = ['#2d66b3','#f1b737','#34af91','#875fc7','#e77561','#8196b4','#50afd7'];
 const segmentColors = {
@@ -112,19 +112,22 @@ async function fetchData({silent=false}={}){
  }catch(e){showError(e.message);}finally{fetching=false;}
 }
 function fillSelects(){
- const choices=[['filter-month',allMonths,monthLabel,'month'],['filter-filial',uniq(data.map(r=>r.filial)).sort((a,b)=>a.localeCompare(b,'pt-BR')),x=>x,'filial'],['filter-segmento',uniq(data.map(r=>r.segmento)).sort(),x=>x,'segmento']];
+ const choices=[['filter-filial',uniq(data.map(r=>r.filial)).sort((a,b)=>a.localeCompare(b,'pt-BR')),x=>x,'filial'],['filter-segmento',uniq(data.map(r=>r.segmento)).sort(),x=>x,'segmento']];
  choices.forEach(([id,vals,display,filter])=>{
-  const el=$(id),original=filters[filter];let opts=`<option value="">${id==='filter-month'?'Todos os meses':id==='filter-filial'?'Todas as filiais':'Todos os segmentos'}</option>`;
+  const el=$(id),original=filters[filter];let opts=`<option value="">${id==='filter-filial'?'Todas as filiais':'Todos os segmentos'}</option>`;
   vals.forEach(v=>{opts+=`<option value="${safeAttr(v)}">${escapeHtml(display(v))}</option>`;});
   el.innerHTML=opts;
   el.value=vals.includes(original)?original:'';filters[filter]=el.value;
  });
+ filters.months=filters.months.filter(m=>allMonths.includes(m));syncMonthSelection();renderMonthPicker();
+ const compare=$('compare-month');compare.innerHTML='<option value="">Sem comparação</option>'+allMonths.map(m=>`<option value="${safeAttr(m)}">${escapeHtml(monthLabel(m))}</option>`).join('');compare.value=allMonths.includes(filters.compareMonth)&&filters.month?filters.compareMonth:'';filters.compareMonth=compare.value;
  $('filter-visita').value=filters.visita;$('filter-client').value=filters.client;
 }
-function filtered(){return data.filter(r=>(!filters.month||r.mes===filters.month)&&(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR'))));}
-function setFilter(name,value){filters[name]=filters[name]===value?'':value;const map={month:'filter-month',filial:'filter-filial',segmento:'filter-segmento',visita:'filter-visita',client:'filter-client'};$(map[name]).value=filters[name];tablePage=1;render();window.scrollTo({top:0,behavior:'smooth'});}
-function renderFilterChips(){const box=$('active-filters'),active=Object.entries(filters).filter(([k,v])=>v);box.hidden=active.length===0;
- box.innerHTML=active.map(([k,v])=>`<div class="filter-chip"><span>${{month:'Mês',filial:'Filial',segmento:'Segmento',visita:'Visita',client:'Cliente'}[k]}:</span> ${escapeHtml(k==='month'?monthLabel(v):v)} <button data-clear="${k}" aria-label="Remover filtro">×</button></div>`).join('');}
+function syncMonthSelection(){filters.month=filters.months.length===1?filters.months[0]:'';if(!filters.month)filters.compareMonth='';const comparison=$('compare-month');if(comparison)comparison.disabled=!filters.month;}
+function renderMonthPicker(){const selected=filters.months;const trigger=$('filter-month'),menu=$('month-picker-menu');trigger.textContent=!selected.length?'Todos os meses':selected.length===1?monthLabel(selected[0]):`${selected.length} meses selecionados`;trigger.title=selected.map(monthLabel).join(', ')||'Todos os meses';menu.innerHTML=`<button type="button" class="month-choice month-clear" data-month-choice="">Todos os meses</button>`+allMonths.map(m=>`<button type="button" class="month-choice ${selected.includes(m)?'selected':''}" data-month-choice="${safeAttr(m)}"><span>${escapeHtml(monthLabel(m))}</span><span aria-hidden="true">${selected.includes(m)?'✓':''}</span></button>`).join('');}
+function filtered(){return data.filter(r=>(!filters.months.length||filters.months.includes(r.mes))&&(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR'))));}
+function setFilter(name,value){if(name==='month'){filters.months=filters.months.length===1&&filters.months[0]===value?[]:[value];syncMonthSelection();renderMonthPicker();$('compare-month').value=filters.compareMonth;}else{filters[name]=filters[name]===value?'':value;const map={filial:'filter-filial',segmento:'filter-segmento',visita:'filter-visita',client:'filter-client'};$(map[name]).value=filters[name];}tablePage=1;render();window.scrollTo({top:0,behavior:'smooth'});}
+function renderFilterChips(){const box=$('active-filters'),active=[];if(filters.months.length)active.push(['months',filters.months.map(monthLabel).join(', ')]);for(const k of ['filial','segmento','visita','client'])if(filters[k])active.push([k,filters[k]]);box.hidden=active.length===0;box.innerHTML=active.map(([k,v])=>`<div class="filter-chip"><span>${{months:'Meses',filial:'Filial',segmento:'Segmento',visita:'Visita',client:'Cliente'}[k]}:</span> ${escapeHtml(v)} <button data-clear="${k}" aria-label="Remover filtro">×</button></div>`).join('');}
 function switchPage(page){
  if(!pageInfo[page])return;
  activePage=page;
@@ -155,7 +158,7 @@ function comparisonScope(){
  const sameFilters=r=>(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR')));
  const scoped=data.filter(sameFilters),months=uniq(scoped.map(r=>r.mes).filter(Boolean)).sort();
  const current=filters.month||'';
- const previous=current?previousMonth(current):'';
+ const previous=filters.compareMonth||'';
  return {current,previous,currentRows:scoped.filter(r=>r.mes===current),previousRows:scoped.filter(r=>r.mes===previous)};
 }
 function metricChange(current,previous,kind,hasPrevious){
@@ -171,16 +174,16 @@ function renderKpis(rows){
  const validTotal=key=>rows.some(r=>typeof r[key]==='number')?sum(rows,key):null;
  const scope=comparisonScope(),current=scope.currentRows,previous=scope.previousRows;
  const metricTotal=(items,key)=>items.some(r=>typeof r[key]==='number')?sum(items,key):null;
- const comparisonLabel=scope.current?`vs. ${monthLabel(scope.previous)}`:'';
+ const comparisonLabel=scope.current&&scope.previous?`vs. ${monthLabel(scope.previous)}`:'';
  const cards=[
   ['Implantações realizadas',fmtInt(rows.length),'Registros com cliente identificado','clipboard',metricChange(current.length,previous.length,'count',previous.length>0)],
   ['Efetivo mobilizado',validTotal('efetivo')===null?'—':fmtInt(validTotal('efetivo')),'Soma do efetivo informado','users',metricChange(metricTotal(current,'efetivo')||0,metricTotal(previous,'efetivo')||0,'people',previous.length>0)],
   ['Gasto realizado',fmtMoney(validTotal('gasto')),'Valores executados na base','wallet',metricChange(metricTotal(current,'gasto')||0,metricTotal(previous,'gasto')||0,'money',previous.length>0)],
   ['Custo evitado',fmtMoney(validTotal('economia')),'Economia declarada na base','savings',metricChange(metricTotal(current,'economia')||0,metricTotal(previous,'economia')||0,'money',previous.length>0)],
  ];
- $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic,change])=>`<button class="kpi-card kpi-drill" type="button" data-drill="data" title="Abrir registros que compõem este indicador"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc}</div>${filters.month?`<div class="kpi-change ${change.state}">${change.text}<small>${comparisonLabel}</small></div>`:''}</button>`).join('');
+ $('kpi-grid').innerHTML=cards.map(([title,val,desc,ic,change])=>`<button class="kpi-card kpi-drill" type="button" data-drill="data" title="Abrir registros que compõem este indicador"><div class="kpi-head"><div class="kpi-label">${title}</div><div class="kpi-icon">${icon(ic)}</div></div><div class="kpi-value">${val}</div><div class="kpi-description">${desc}</div>${filters.month&&filters.compareMonth?`<div class="kpi-change ${change.state}">${change.text}<small>${comparisonLabel}</small></div>`:''}</button>`).join('');
  const lead=meanLead(rows),clients=uniq(rows.map(r=>r.cliente.trim().toLocaleUpperCase('pt-BR'))).length;
- const comparison=!filters.month?'Selecione um mês para comparar com o anterior.':scope.previousRows.length?`${scope.currentRows.length-scope.previousRows.length>=0?'+':''}${fmtInt(scope.currentRows.length-scope.previousRows.length)} registros · ${comparisonLabel}`:'Sem base comparável no mês anterior.';
+ const comparison=!filters.month?'Selecione um único mês e um mês de referência para comparar.':!filters.compareMonth?'Escolha o mês de referência em “Comparar com”.':scope.previousRows.length?`${scope.currentRows.length-scope.previousRows.length>=0?'+':''}${fmtInt(scope.currentRows.length-scope.previousRows.length)} registros · ${comparisonLabel}`:'Sem base comparável no mês escolhido.';
  $('executive-context').innerHTML=`<div><span>LEAD TIME</span><strong>${lead===null?'—':fmtDecimal(lead,1)+' dias úteis'}</strong><small>Apenas prazos válidos, não negativos</small></div><div><span>CLIENTES DISTINTOS</span><strong>${fmtInt(clients)}</strong><small>Contagem por nome normalizado</small></div><div><span>COMPARAÇÃO MENSAL</span><strong class="comparison">${escapeHtml(comparison)}</strong><small>Mesmos filtros de filial, segmento, visita e cliente</small></div>`;
 }
 const axisNum = n => Math.abs(n)>=1e6?fmtDecimal(n/1e6,1)+' mi':Math.abs(n)>=1e3?fmtInt(n/1e3)+' mil':fmtInt(n);
@@ -194,7 +197,7 @@ function barSvg(months,key,options={}){
  svg+=yScaffold(nice,top,avail,left,elWidth-right);
  const avg=months.reduce((a,m)=>a+(Number(m[key])||0),0)/months.length;
  if(avg>0){const ay=top+avail-avg/nice*avail;svg+=`<line x1="${left}" x2="${elWidth-right}" y1="${ay}" y2="${ay}" stroke="#e7ad2b" stroke-width="1.5" stroke-dasharray="5 6" opacity=".76"/><text x="${elWidth-right-4}" y="${Math.max(top+12,ay-8)}" text-anchor="end" font-size="11" font-weight="800" fill="#b07a14">MÉDIA ${fmtDecimal(avg,1)}</text>`;}
- months.forEach((m,i)=>{const value=Number(m[key])||0,xc=left+space*(i+.5),bw=Math.min(45,space*.53),bh=value/nice*avail,base=top+avail,highlight=filters.month===m.mes;
+ months.forEach((m,i)=>{const value=Number(m[key])||0,xc=left+space*(i+.5),bw=Math.min(45,space*.53),bh=value/nice*avail,base=top+avail,highlight=filters.months.includes(m.mes);
  svg+=`<rect class="chart-hover" tabindex="0" role="button" x="${xc-bw/2}" y="${base-bh}" width="${bw}" height="${Math.max(bh,0)}" rx="4" fill="${highlight?'#f3b82b':`url(#bars-${key})`}" data-tip="${safeAttr(`${monthLabel(m.mes)}\n${options.name||'Total'}: ${fmtInt(value)}\nClique para ver registros`)}" data-month="${safeAttr(m.mes)}" data-drill="data"/>`;
  if(bh>18)svg+=`<text x="${xc}" y="${base-bh-8}" text-anchor="middle" font-size="10" font-weight="800" fill="#587394">${fmtInt(value)}</text>`;
  svg+=`<text class="chart-axis" x="${xc}" y="${base+23}" text-anchor="middle" style="font-weight:${highlight?'900':'600'};fill:${highlight?'#b9830d':'#93a2b4'}">${m.label}</text>`;});
@@ -264,9 +267,13 @@ function exportCSV(){const cols=[['mes','MÊS'],['cliente','CLIENTE'],['filial',
  const sorted=tableRows(currentRows),lines=[cols.map(c=>csvEscape(c[1])).join(';')];sorted.forEach(r=>lines.push(cols.map(([k])=>csvEscape(typeof r[k]==='number'?String(r[k]).replace('.',','):r[k]??'',typeof r[k]==='number')).join(';')));const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='implantacoes_filtradas_2026.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1200);toast(`${fmtInt(sorted.length)} registros exportados para CSV.`);}
 
 // Interações
-for(const [id,key] of [['filter-month','month'],['filter-filial','filial'],['filter-segmento','segmento'],['filter-visita','visita']]) $(id).addEventListener('change',e=>{filters[key]=e.target.value;tablePage=1;render();});
+for(const [id,key] of [['filter-filial','filial'],['filter-segmento','segmento'],['filter-visita','visita']]) $(id).addEventListener('change',e=>{filters[key]=e.target.value;tablePage=1;render();});
+$('filter-month').addEventListener('click',()=>{const menu=$('month-picker-menu'),open=menu.hidden;menu.hidden=!open;$('filter-month').setAttribute('aria-expanded',String(open));});
+$('month-picker-menu').addEventListener('click',e=>{const choice=e.target.closest('[data-month-choice]');if(!choice)return;const month=choice.dataset.monthChoice;if(!month)filters.months=[];else filters.months=filters.months.includes(month)?filters.months.filter(m=>m!==month):[...filters.months,month].sort();syncMonthSelection();renderMonthPicker();$('compare-month').value=filters.compareMonth;tablePage=1;render();});
+$('compare-month').addEventListener('change',e=>{filters.compareMonth=filters.month?e.target.value:'';e.target.value=filters.compareMonth;render();});
+document.addEventListener('click',e=>{if(!e.target.closest('.month-picker-control')){$('month-picker-menu').hidden=true;$('filter-month').setAttribute('aria-expanded','false');}});
 $('filter-client').addEventListener('input',e=>{filters.client=e.target.value.trim();tablePage=1;geoPage=1;render();});
-$('clear-filters').addEventListener('click',()=>{Object.keys(filters).forEach(k=>filters[k]='');['filter-month','filter-filial','filter-segmento','filter-visita','filter-client'].forEach(id=>$(id).value='');tableSearch='';geoSearch='';geoFocus='';geoPage=1;$('geo-search').value='';$('table-search').value='';tablePage=1;render();});
+$('clear-filters').addEventListener('click',()=>{filters.months=[];filters.month='';filters.compareMonth='';['filial','segmento','visita','client'].forEach(k=>filters[k]='');renderMonthPicker();$('compare-month').value='';['filter-filial','filter-segmento','filter-visita','filter-client'].forEach(id=>$(id).value='');tableSearch='';geoSearch='';geoFocus='';geoPage=1;$('geo-search').value='';$('table-search').value='';tablePage=1;render();});
 document.querySelectorAll('.nav-item').forEach(b=>b.addEventListener('click',()=>{switchPage(b.dataset.page);window.scrollTo({top:0,behavior:'smooth'});}));
 document.querySelectorAll('.seg-toggle button').forEach(b=>b.addEventListener('click',()=>{metric=b.dataset.metric;document.querySelectorAll('.seg-toggle button').forEach(c=>c.classList.toggle('active',c===b));renderMonthly(currentRows);}));
 $('print-button').addEventListener('click',()=>window.print());
@@ -293,12 +300,12 @@ document.querySelectorAll('#records-table th[data-sort]').forEach(th=>th.addEven
 $('table-prev').addEventListener('click',()=>{tablePage--;renderTable(currentRows);});$('table-next').addEventListener('click',()=>{tablePage++;renderTable(currentRows);});$('export-csv').addEventListener('click',exportCSV);
 function drillToData(target){
  const map=[['month','month'],['filial','filial'],['segment','segmento'],['visit','visita']];
- for(const [prop,key] of map){if(target.dataset[prop]!==undefined){filters[key]=target.dataset[prop];const control={month:'filter-month',filial:'filter-filial',segmento:'filter-segmento',visita:'filter-visita'}[key];$(control).value=filters[key];}}
+ for(const [prop,key] of map){if(target.dataset[prop]!==undefined){if(key==='month'){filters.months=[target.dataset[prop]];syncMonthSelection();renderMonthPicker();$('compare-month').value=filters.compareMonth;}else{filters[key]=target.dataset[prop];const control={filial:'filter-filial',segmento:'filter-segmento',visita:'filter-visita'}[key];$(control).value=filters[key];}}}
  tablePage=1;geoPage=1;switchPage('dados');render();window.scrollTo({top:0,behavior:'smooth'});
  toast(`${fmtInt(currentRows.length)} registros abertos na Base de Dados.`);
 }
 document.addEventListener('click',e=>{
- const remove=e.target.closest('[data-clear]');if(remove){setFilter(remove.dataset.clear,filters[remove.dataset.clear]);return;}
+ const remove=e.target.closest('[data-clear]');if(remove){if(remove.dataset.clear==='months'){filters.months=[];syncMonthSelection();renderMonthPicker();$('compare-month').value='';render();}else setFilter(remove.dataset.clear,filters[remove.dataset.clear]);return;}
  const nav=e.target.closest('.link-button[data-page]');if(nav){switchPage(nav.dataset.page);window.scrollTo({top:0,behavior:'smooth'});return;}
  const drill=e.target.closest('[data-drill="data"]');if(drill){drillToData(drill);return;}
  const target=e.target.closest('[data-month],[data-filial],[data-segment],[data-visit]');if(target){const map=[['month','month'],['filial','filial'],['segment','segmento'],['visit','visita']];for(const [prop,k] of map){if(target.dataset[prop]!==undefined){setFilter(k,target.dataset[prop]);break;}}}
@@ -439,7 +446,7 @@ function geoRenderFocus(rows){const box=$('geo-region-focus'),gs=geoGroups(rows)
  box.innerHTML=`<div class="geo-focus-name">${escapeHtml(selected.name)}</div><div class="geo-focus-numbers"><div><strong>${fmtInt(selected.count)}</strong><span>Implantações</span></div><div><strong>${fmtInt(selected.efetivo)}</strong><span>Efetivo</span></div><div><strong>${fmtInt(distinct)}</strong><span>Clientes</span></div></div><div class="geo-focus-client"><strong>Exemplos de clientes:</strong> ${escapeHtml(selected.rows.slice(0,3).map(x=>x.cliente).join(' · '))}</div>`;
 }
 function geoRenderMonth(rows){const base=data.filter(r=>(!filters.filial||r.filial===filters.filial)&&(!filters.segmento||r.segmento===filters.segmento)&&(!filters.visita||r.visita===filters.visita)&&(!filters.client||r.cliente.toLocaleUpperCase('pt-BR').includes(filters.client.toLocaleUpperCase('pt-BR')))&&(!geoSearch||[r.cliente,r.filial,r.segmento].join(' ').toLocaleUpperCase('pt-BR').includes(geoSearch.toLocaleUpperCase('pt-BR'))));const g=groupBy(base,'mes'),byMonth=new Map(g.map(x=>[x.name,x.value]));const max=Math.max(1,...byMonth.values());
- $('geo-month-bars').innerHTML=allMonths.map(m=>{const val=byMonth.get(m)||0;return `<button class="geo-month ${filters.month===m?'selected':''}" data-geo-month="${safeAttr(m)}" title="Filtrar por ${monthLabel(m)}"><span class="geo-month-title">${MONTHS[+m.slice(5,7)-1]}</span><span class="geo-month-track"><i style="width:${val/max*100}%"></i></span><strong>${fmtInt(val)}</strong></button>`;}).join('');}
+ $('geo-month-bars').innerHTML=allMonths.map(m=>{const val=byMonth.get(m)||0;return `<button class="geo-month ${filters.months.includes(m)?'selected':''}" data-geo-month="${safeAttr(m)}" title="Adicionar ou remover ${monthLabel(m)}"><span class="geo-month-title">${MONTHS[+m.slice(5,7)-1]}</span><span class="geo-month-track"><i style="width:${val/max*100}%"></i></span><strong>${fmtInt(val)}</strong></button>`;}).join('');}
 let geoSort='efetivo',geoDir=-1;
 function geoRenderTable(rows){const sorted=[...rows].sort((a,b)=>{const av=a[geoSort],bv=b[geoSort];return (typeof av==='number'||typeof bv==='number'?(av??0)-(bv??0):String(av??'').localeCompare(String(bv??''),'pt-BR',{numeric:true}))*geoDir;});
  const pages=Math.max(1,Math.ceil(sorted.length/GEO_PAGE_SIZE));geoPage=Math.min(Math.max(geoPage,1),pages);
@@ -475,7 +482,7 @@ $('geo-viewport').addEventListener('wheel',e=>{e.preventDefault();geoZoom(e.delt
 $('geo-viewport').addEventListener('keydown',e=>{if(e.key==='+'||e.key==='='){geoZoom(1);e.preventDefault();}if(e.key==='-'){geoZoom(-1);e.preventDefault();}});
 document.addEventListener('click',e=>{const cl=e.target.closest('[data-geo-cluster]');if(cl){const c=geoDrawMap.clusters?.[+cl.dataset.geoCluster];if(!c)return;if(c.items.length>1){const lat=c.items.reduce((a,b)=>a+b.lat,0)/c.items.length,lon=c.items.reduce((a,b)=>a+b.lon,0)/c.items.length;geoGoto(lon,lat,Math.min(10,geoMap.zoom+2));}else geoSelectBase(c.items[0].name,Math.max(geoMap.zoom,7));return;}
  const base=e.target.closest('[data-geo-base]');if(base){geoSelectBase(base.dataset.geoBase);$('geo-viewport').scrollIntoView({behavior:'smooth',block:'center'});return;}
- const month=e.target.closest('[data-geo-month]');if(month){const m=month.dataset.geoMonth;filters.month=filters.month===m?'':m;$('filter-month').value=filters.month;geoPage=1;render();return;}
+ const month=e.target.closest('[data-geo-month]');if(month){const m=month.dataset.geoMonth;filters.months=filters.months.includes(m)?filters.months.filter(v=>v!==m):[...filters.months,m].sort();syncMonthSelection();renderMonthPicker();$('compare-month').value=filters.compareMonth;geoPage=1;render();return;}
 });
 if(typeof ResizeObserver!=='undefined'){new ResizeObserver(()=>{if(!$('page-mapa').hidden)geoDrawMap();}).observe($('geo-viewport'));}
 
